@@ -4,10 +4,10 @@ FROM oven/bun:1.0-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb ./
+COPY package.json ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy shared modules (mounted as volume in docker-compose)
 # This is handled by volume mount
