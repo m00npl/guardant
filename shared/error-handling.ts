@@ -167,6 +167,19 @@ export class DatabaseError extends GuardAntError {
   }
 }
 
+export class SecretError extends GuardAntError {
+  constructor(message: string, context: ErrorContext) {
+    super({
+      code: 'SECRET_ERROR',
+      message: `Secret management error: ${message}`,
+      category: ErrorCategory.CONFIGURATION,
+      severity: ErrorSeverity.HIGH,
+      recoveryStrategy: RecoveryStrategy.NONE,
+      context
+    });
+  }
+}
+
 export class ExternalServiceError extends GuardAntError {
   constructor(service: string, context: ErrorContext, originalError?: Error) {
     super({
