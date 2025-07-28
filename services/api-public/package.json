@@ -1,0 +1,36 @@
+{
+  "name": "@guardant/api-public",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "lint": "eslint src --ext ts --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "hono": "^3.9.2",
+    "ioredis": "^5.3.2",
+    "@opentelemetry/api": "^1.6.0",
+    "@opentelemetry/sdk-node": "^0.45.0",
+    "@opentelemetry/resources": "^1.17.0",
+    "@opentelemetry/semantic-conventions": "^1.17.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.40.0",
+    "@opentelemetry/exporter-jaeger": "^1.17.0",
+    "@opentelemetry/sdk-trace-base": "^1.17.0",
+    "@opentelemetry/sdk-metrics": "^1.17.0",
+    "@opentelemetry/exporter-prometheus": "^0.44.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "eslint": "^8.51.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@typescript-eslint/parser": "^6.7.4",
+    "typescript": "^5.2.2",
+    "@types/supertest": "^2.0.16",
+    "supertest": "^6.3.3"
+  }
+}

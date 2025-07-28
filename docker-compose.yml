@@ -1,0 +1,266 @@
+version: '3.8'
+
+services:
+  # Frontend Services
+  admin-frontend:
+    container_name: guardant-admin-frontend
+    build:
+      context: ./frontends/admin
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://admin-api:4000
+    depends_on:
+      - admin-api
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  public-frontend:
+    container_name: guardant-public-frontend
+    build:
+      context: ./frontends/public
+      dockerfile: Dockerfile
+    ports:
+      - "3001:80"
+    environment:
+      - VITE_API_URL=http://public-api:4001
+    depends_on:
+      - public-api
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  embed-widget:
+    container_name: guardant-embed-widget
+    build:
+      context: ./frontends/embed
+      dockerfile: Dockerfile
+    ports:
+      - "3002:80"
+    environment:
+      - VITE_API_URL=http://public-api:4001
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  # Backend Services
+  admin-api:
+    container_name: guardant-admin-api
+    build:
+      context: ./services/api-admin
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-here}
+      - GOLEM_PRIVATE_KEY_PATH=/config/golembase/private.key
+    volumes:
+      - golem-config:/config/golembase
+      - ./shared:/app/shared:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  public-api:
+    container_name: guardant-public-api
+    build:
+      context: ./services/api-public
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=production
+      - PORT=4001
+      - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+    volumes:
+      - ./shared:/app/shared:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  monitoring-worker:
+    container_name: guardant-monitoring-worker
+    build:
+      context: ./services/worker-monitoring
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 3  # Multiple workers for distributed monitoring
+    environment:
+      - NODE_ENV=production
+      - PORT=4002
+      - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - WORKER_ID=${HOSTNAME}
+      - WORKER_REGION=${WORKER_REGION:-us-east-1}
+    volumes:
+      - ./shared:/app/shared:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  # Infrastructure Services
+  postgres:
+    container_name: guardant-postgres
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=guardant
+      - POSTGRES_PASSWORD=guardant123
+      - POSTGRES_DB=guardant
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./database/indexes.sql:/docker-entrypoint-initdb.d/02-indexes.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guardant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  redis:
+    container_name: guardant-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  rabbitmq:
+    container_name: guardant-rabbitmq
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=guardant
+      - RABBITMQ_DEFAULT_PASS=guardant123
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  # Optional: Monitoring Stack
+  prometheus:
+    container_name: guardant-prometheus
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  grafana:
+    container_name: guardant-grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3003:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  # Optional: Distributed Tracing
+  jaeger:
+    container_name: guardant-jaeger
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+  # Optional: Secret Management (Development only)
+  vault:
+    container_name: guardant-vault
+    image: vault:1.15
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=dev-only-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+  prometheus-data:
+  grafana-data:
+  golem-config:
+
+networks:
+  guardant-network:
+    driver: bridge

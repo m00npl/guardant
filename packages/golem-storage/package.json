@@ -1,0 +1,21 @@
+{
+  "name": "@guardant/golem-storage",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@guardant/shared-types": "workspace:*",
+    "golem-base-sdk": "^0.1.16",
+    "tslog": "^4.9.2",
+    "xdg-portable": "^10.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,145 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      
+      - name: Build documentation site
+        run: |
+          mkdir -p _site
+          cp -r docs/* _site/
+          cp README.md _site/
+          
+          # Generate index.html from README
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <title>GuardAnt Documentation</title>
+              <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+              <meta name="description" content="GuardAnt - Enterprise Multi-Tenant Monitoring Platform">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+              <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+          </head>
+          <body>
+              <div id="app"></div>
+              <script>
+                  window.$docsify = {
+                      name: 'GuardAnt',
+                      repo: 'https://github.com/m00npl/guardant',
+                      loadSidebar: true,
+                      auto2top: true,
+                      coverpage: true,
+                      loadNavbar: true,
+                      maxLevel: 4,
+                      subMaxLevel: 3,
+                      search: {
+                          maxAge: 86400000,
+                          paths: 'auto',
+                          placeholder: 'Search',
+                          noData: 'No Results!',
+                          depth: 6
+                      },
+                      pagination: {
+                          previousText: 'Previous',
+                          nextText: 'Next',
+                          crossChapter: true,
+                          crossChapterText: true,
+                      }
+                  }
+              </script>
+              <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+              <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+              <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
+              <script src="//cdn.jsdelivr.net/npm/docsify-copy-code/dist/docsify-copy-code.min.js"></script>
+              <script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
+              <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
+              <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+              <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+          </body>
+          </html>
+          EOF
+          
+          # Generate sidebar
+          cat > _site/_sidebar.md << 'EOF'
+          * [Home](/)
+          * [API Documentation](API.md)
+          * [Architecture](ARCHITECTURE.md)
+          * [Development Guide](DEVELOPMENT.md)
+          * [Deployment](DEPLOYMENT.md)
+          * [Security](SECURITY.md)
+          * [Troubleshooting](TROUBLESHOOTING.md)
+          * [Contributing](CONTRIBUTING.md)
+          * [Changelog](CHANGELOG.md)
+          EOF
+          
+          # Generate navbar
+          cat > _site/_navbar.md << 'EOF'
+          * [GitHub](https://github.com/m00npl/guardant)
+          * [Discord](https://discord.gg/guardant)
+          EOF
+          
+          # Generate coverpage
+          cat > _site/_coverpage.md << 'EOF'
+          ![logo](_media/logo.png)
+          
+          # GuardAnt
+          
+          > Enterprise Multi-Tenant Monitoring Platform
+          
+          * Multi-tenant architecture with complete isolation
+          * Powered by Golem Base for decentralized storage
+          * Real-time monitoring and analytics
+          * Enterprise-grade security and reliability
+          
+          [GitHub](https://github.com/m00npl/guardant)
+          [Get Started](#quick-start)
+          EOF
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: '_site'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v3

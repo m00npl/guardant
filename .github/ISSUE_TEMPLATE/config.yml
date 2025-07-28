@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Community Support
+    url: https://discord.gg/guardant
+    about: Please ask and answer questions here
+  - name: Security Issues
+    url: mailto:moon.pl.kr@gmail.com
+    about: Please report security vulnerabilities here

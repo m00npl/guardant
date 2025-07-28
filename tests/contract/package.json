@@ -1,0 +1,51 @@
+{
+  "name": "@guardant/contract-tests",
+  "version": "1.0.0",
+  "description": "Contract tests for GuardAnt multi-tenant monitoring services",
+  "type": "module",
+  "scripts": {
+    "test": "bun run run-contract-tests.ts",
+    "test:consumer": "bun test *.test.ts",
+    "test:verify": "bun run run-contract-tests.ts --verify",
+    "test:publish": "bun run run-contract-tests.ts --publish",
+    "test:all": "bun run run-contract-tests.ts --all",
+    "clean": "rm -rf pacts logs coverage",
+    "setup": "mkdir -p pacts logs && bun install"
+  },
+  "dependencies": {
+    "@pact-foundation/pact": "^12.1.0",
+    "@pact-foundation/pact-node": "^10.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "bun-types": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "contract-testing",
+    "pact",
+    "microservices",
+    "api-testing",
+    "guardant",
+    "monitoring"
+  ],
+  "author": "GuardAnt Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guardant/guardant.git",
+    "directory": "tests/contract"
+  },
+  "config": {
+    "pact": {
+      "brokerUrl": "https://guardant.pactflow.io",
+      "brokerToken": "$PACT_BROKER_TOKEN",
+      "consumerVersion": "1.0.0",
+      "providerVersion": "1.0.0",
+      "tags": ["main", "develop"]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@guardant/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@opentelemetry/api": "^1.6.0",
+    "@opentelemetry/sdk-node": "^0.45.0",
+    "@opentelemetry/resources": "^1.17.0",
+    "@opentelemetry/semantic-conventions": "^1.17.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.40.0",
+    "@opentelemetry/exporter-jaeger": "^1.17.0",
+    "@opentelemetry/sdk-trace-base": "^1.17.0",
+    "@opentelemetry/sdk-metrics": "^1.17.0",
+    "@opentelemetry/exporter-prometheus": "^0.44.0",
+    "golem-base-sdk": "^1.0.0",
+    "tslog": "^4.9.2",
+    "xdg-portable": "^10.6.0"
+  }
+}
