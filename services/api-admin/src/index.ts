@@ -1677,9 +1677,11 @@ app.post('/api/worker-ants/status', async (c) => {
 
 // Initialize storage and start server
 async function startServer() {
+  console.log(`🚦 [${startupId}] Starting server initialization...`);
+  
   try {
     // Initialize configuration
-    console.log('📋 Loading configuration...');
+    console.log(`📋 [${startupId}] Loading configuration...`);
     config = await getConfig('api-admin');
     const port = config.get('port') || 3001;
     
@@ -1883,8 +1885,47 @@ async function startServer() {
       const serverPort = parseInt(String(port), 10);
       console.log(`🔢 Parsed port: ${serverPort}`);
       
+      // Check current process info
+      console.log(`🔍 Process info:`, {
+        pid: process.pid,
+        ppid: process.ppid,
+        platform: process.platform,
+        arch: process.arch,
+        versions: process.versions
+      });
+      
       // Wait a bit to ensure all resources are ready
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if port is available before trying to bind
+      const net = require('net');
+      const checkPort = () => new Promise((resolve) => {
+        const tester = net.createServer()
+          .once('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+              console.error(`❌ Port ${serverPort} is already in use by another process`);
+              resolve(false);
+            } else {
+              console.error(`❌ Port check error:`, err);
+              resolve(false);
+            }
+          })
+          .once('listening', () => {
+            tester.once('close', () => {
+              console.log(`✅ Port ${serverPort} is available`);
+              resolve(true);
+            }).close();
+          })
+          .listen(serverPort, '0.0.0.0');
+      });
+      
+      const portAvailable = await checkPort();
+      if (!portAvailable) {
+        throw new Error(`Port ${serverPort} is not available`);
+      }
+      
+      // Small delay after port check
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const server = Bun.serve({
         port: serverPort,
@@ -2032,12 +2073,16 @@ function generateWidgetPreviewHTML(nest: Nest, services: any[], options: { theme
   </div>`;
 }
 
+// Generate unique startup ID to detect multiple starts
+const startupId = Math.random().toString(36).substring(7);
+console.log(`🔑 Startup ID: ${startupId}`);
+
 // Only start server if this is the main module
 if (import.meta.main) {
-  console.log('🚀 Running as main module, starting server...');
+  console.log(`🚀 [${startupId}] Running as main module, starting server...`);
   startServer();
 } else {
-  console.log('📦 Loaded as module, not starting server');
+  console.log(`📦 [${startupId}] Loaded as module, not starting server`);
 }
 
 export default app;

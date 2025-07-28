@@ -25,5 +25,5 @@ EXPOSE 4000
 # Add environment to help with debugging
 ENV DOCKER=true
 
-# Run the application
-CMD ["bun", "run", "src/index.ts"]
+# Run the application directly
+CMD ["bun", "src/index.ts"]
