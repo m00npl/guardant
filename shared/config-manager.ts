@@ -230,8 +230,9 @@ export class ConfigManager {
 
       this.logger.info('Secrets loaded from Vault successfully');
     } catch (error) {
+      console.error('🔐 Vault error details:', error);
       this.logger.error('Failed to load secrets from Vault', error as Error);
-      throw new Error('Failed to initialize configuration with Vault');
+      throw error; // Throw original error to see details
     }
   }
 

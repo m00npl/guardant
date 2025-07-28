@@ -101,7 +101,7 @@ export class VaultSecretProvider implements SecretProvider {
     this.baseUrl = config.vaultUrl || 'http://localhost:8200';
     this.token = config.vaultToken || '';
     this.namespace = config.vaultNamespace;
-    this.mountPath = config.mountPath || 'secret';
+    this.mountPath = config.mountPath || 'guardant';
   }
 
   private async makeRequest(
