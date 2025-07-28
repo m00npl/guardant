@@ -50,10 +50,10 @@ services:
       context: .
       dockerfile: services/api-admin/Dockerfile
     ports:
-      - "4040:8080"
+      - "4040:9876"
     environment:
       - NODE_ENV=production
-      - PORT=8080
+      - PORT=9876
       - BUN_CONFIG_NO_CLEAR_TERMINAL=1
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379

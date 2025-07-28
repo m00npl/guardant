@@ -1,3 +1,12 @@
+// Log startup immediately
+console.log(`🏁 Admin API module loading at ${new Date().toISOString()}`);
+console.log(`🏁 Process: PID ${process.pid}, PPID ${process.ppid}`);
+console.log(`🏁 Import meta:`, { 
+  main: import.meta.main, 
+  url: import.meta.url,
+  dir: import.meta.dir 
+});
+
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { v4 as uuidv4 } from 'uuid';
@@ -2117,22 +2126,29 @@ function generateWidgetPreviewHTML(nest: Nest, services: any[], options: { theme
 const startupId = Math.random().toString(36).substring(7);
 console.log(`🔑 Startup ID: ${startupId}`);
 
-// Global flag to prevent multiple starts
-let serverStarted = false;
+// Global flag to prevent multiple starts - use a more robust mechanism
+const GLOBAL_SERVER_STATE_KEY = '__GUARDANT_ADMIN_SERVER_STARTED__';
+if (!(global as any)[GLOBAL_SERVER_STATE_KEY]) {
+  (global as any)[GLOBAL_SERVER_STATE_KEY] = false;
+}
 
 // Only start server if this is the main module
 if (import.meta.main) {
-  console.log(`🚀 [${startupId}] Running as main module, starting server...`);
+  console.log(`🚀 [${startupId}] Running as main module, checking server state...`);
   
-  // Ensure we only start once
-  if (!serverStarted) {
-    serverStarted = true;
+  // Double-check with global state
+  if (!(global as any)[GLOBAL_SERVER_STATE_KEY]) {
+    console.log(`🚀 [${startupId}] Starting server for the first time...`);
+    (global as any)[GLOBAL_SERVER_STATE_KEY] = true;
+    
     startServer().catch(error => {
       console.error(`💥 [${startupId}] Server start failed:`, error);
+      (global as any)[GLOBAL_SERVER_STATE_KEY] = false; // Reset on failure
       process.exit(1);
     });
   } else {
-    console.log(`⚠️ [${startupId}] Server already starting, skipping...`);
+    console.log(`⚠️ [${startupId}] Server already started by another instance!`);
+    console.log(`⚠️ This suggests the module is being loaded multiple times.`);
   }
 } else {
   console.log(`📦 [${startupId}] Loaded as module, not starting server`);

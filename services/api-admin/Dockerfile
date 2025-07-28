@@ -20,7 +20,7 @@ RUN bun install
 WORKDIR /app/services/api-admin
 
 # Expose port
-EXPOSE 8080
+EXPOSE 9876
 
 # Add environment to help with debugging
 ENV DOCKER=true
