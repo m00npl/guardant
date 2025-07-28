@@ -120,10 +120,12 @@ const logger = createLogger('api-admin');
 
 // Configuration manager
 let config: ConfigManager;
+
+// Declare Redis variables - will be initialized after config loads
 let redis: Redis;
 
 // Create advanced Redis wrapper with circuit breaker, retry, and metrics
-const redisWithMetrics = {
+let redisWithMetrics: any = {
   async get(key: string) {
     return redisCircuitBreaker.execute(
       async () => {
@@ -241,19 +243,6 @@ const redisWithMetrics = {
 
   pipeline: () => redis.pipeline(),
 };
-
-// Redis connection event logging
-redis.on('connect', () => {
-  logger.info('Connected to Redis', { component: 'redis' });
-});
-
-redis.on('error', (error) => {
-  logger.error('Redis connection error', error, { component: 'redis' });
-});
-
-redis.on('close', () => {
-  logger.warn('Redis connection closed', { component: 'redis' });
-});
 
 // RabbitMQ configuration
 let rabbitmqConfig: any;
@@ -1747,6 +1736,19 @@ async function startServer() {
       lazyConnect: true,
     };
     redis = new Redis(redisConfig);
+    
+    // Redis connection event logging
+    redis.on('connect', () => {
+      logger.info('Connected to Redis', { component: 'redis' });
+    });
+
+    redis.on('error', (error) => {
+      logger.error('Redis connection error', error, { component: 'redis' });
+    });
+
+    redis.on('close', () => {
+      logger.warn('Redis connection closed', { component: 'redis' });
+    });
     
     // Test Redis connection
     await redis.ping();
