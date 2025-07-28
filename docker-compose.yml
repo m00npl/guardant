@@ -50,10 +50,11 @@ services:
       context: .
       dockerfile: services/api-admin/Dockerfile
     ports:
-      - "4000:4000"
+      - "4040:4000"
     environment:
       - NODE_ENV=production
       - PORT=4000
+      - BUN_CONFIG_NO_CLEAR_TERMINAL=1
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672

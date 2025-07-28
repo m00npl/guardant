@@ -1871,11 +1871,76 @@ async function startServer() {
     console.log('🔐 Configuration loaded:', config.getSafeConfig());
     
     // Start server
-    Bun.serve({
-      port,
-      hostname: '0.0.0.0',
-      fetch: app.fetch,
-    });
+    console.log(`🔍 Attempting to start server on hostname: 0.0.0.0, port: ${port}`);
+    console.log(`🔍 Port type: ${typeof port}, value: ${port}`);
+    
+    // Check if we're in Docker
+    const fs = require('fs');
+    const isDocker = process.env.DOCKER === 'true' || fs.existsSync('/.dockerenv');
+    console.log(`🐳 Running in Docker: ${isDocker}`);
+    
+    try {
+      const serverPort = parseInt(String(port), 10);
+      console.log(`🔢 Parsed port: ${serverPort}`);
+      
+      // Wait a bit to ensure all resources are ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const server = Bun.serve({
+        port: serverPort,
+        hostname: '0.0.0.0',
+        fetch: app.fetch,
+        error(error) {
+          console.error('🚨 Request error:', error);
+          return new Response('Internal Server Error', { status: 500 });
+        },
+        // Explicitly set server options for Docker
+        reusePort: true,
+      });
+      
+      console.log(`✅ Server started successfully!`);
+      console.log(`📡 Server details:`, {
+        hostname: server.hostname,
+        port: server.port,
+        url: server.url,
+        development: server.development
+      });
+      
+      // Keep the process alive
+      process.on('SIGINT', () => {
+        console.log('👋 Shutting down server...');
+        server.stop();
+        process.exit(0);
+      });
+    } catch (serverError) {
+      console.error('🔥 Server start error:', serverError);
+      console.error('🔥 Error details:', {
+        name: serverError.name,
+        message: serverError.message,
+        code: serverError.code,
+        errno: serverError.errno,
+        syscall: serverError.syscall,
+        address: serverError.address,
+        port: serverError.port,
+        stack: serverError.stack
+      });
+      
+      // Check if port is in use
+      if (serverError.code === 'EADDRINUSE' || serverError.message.includes('in use')) {
+        console.error(`❌ Port ${port} is already in use!`);
+        
+        // Try to find what's using the port (Linux/Docker specific)
+        try {
+          const { execSync } = require('child_process');
+          const portCheck = execSync(`lsof -i :${port} 2>/dev/null || true`).toString();
+          console.log('🔍 Port usage:', portCheck || 'Could not determine');
+        } catch (e) {
+          console.log('🔍 Could not check port usage');
+        }
+      }
+      
+      throw serverError;
+    }
   } catch (error) {
     console.error('❌ Failed to initialize services:', error);
     process.exit(1);
@@ -1967,6 +2032,12 @@ function generateWidgetPreviewHTML(nest: Nest, services: any[], options: { theme
   </div>`;
 }
 
-startServer();
+// Only start server if this is the main module
+if (import.meta.main) {
+  console.log('🚀 Running as main module, starting server...');
+  startServer();
+} else {
+  console.log('📦 Loaded as module, not starting server');
+}
 
 export default app;
