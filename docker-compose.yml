@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Frontend Services
   admin-frontend:
@@ -59,8 +57,12 @@ services:
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN:-}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-here}
       - GOLEM_PRIVATE_KEY_PATH=/config/golembase/private.key
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN:-}
     volumes:
       - golem-config:/config/golembase
       - ./shared:/app/shared:ro
@@ -70,6 +72,8 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      vault:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -88,6 +92,8 @@ services:
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN:-}
     volumes:
       - ./shared:/app/shared:ro
     depends_on:
@@ -97,12 +103,13 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      vault:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - guardant-network
 
   monitoring-worker:
-    container_name: guardant-monitoring-worker
     build:
       context: ./services/worker-monitoring
       dockerfile: Dockerfile
@@ -114,7 +121,9 @@ services:
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
-      - WORKER_ID=${HOSTNAME}
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN:-}
+      - WORKER_ID={{.Task.ID}}
       - WORKER_REGION=${WORKER_REGION:-us-east-1}
     volumes:
       - ./shared:/app/shared:ro
@@ -124,6 +133,8 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      vault:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -188,7 +199,7 @@ services:
     networks:
       - guardant-network
 
-  # Optional: Monitoring Stack
+  # Monitoring Stack
   prometheus:
     container_name: guardant-prometheus
     image: prom/prometheus:latest
@@ -221,7 +232,7 @@ services:
     networks:
       - guardant-network
 
-  # Optional: Distributed Tracing
+  # Distributed Tracing
   jaeger:
     container_name: guardant-jaeger
     image: jaegertracing/all-in-one:latest
@@ -238,17 +249,29 @@ services:
     networks:
       - guardant-network
 
-  # Optional: Secret Management (Development only)
+  # Secret Management
   vault:
     container_name: guardant-vault
     image: vault:1.15
     ports:
       - "8200:8200"
     environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=dev-only-token
-      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - VAULT_LOCAL_CONFIG='{"backend": {"file": {"path": "/vault/file"}}, "listener": {"tcp": {"address": "0.0.0.0:8200", "tls_disable": 1}}, "ui": true, "disable_mlock": true}'
     cap_add:
       - IPC_LOCK
+    volumes:
+      - vault-data:/vault/file
+      - vault-logs:/vault/logs
+      - ./scripts/vault:/vault/scripts:ro
+    command: server
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
     networks:
       - guardant-network
@@ -260,6 +283,8 @@ volumes:
   prometheus-data:
   grafana-data:
   golem-config:
+  vault-data:
+  vault-logs:
 
 networks:
   guardant-network:
