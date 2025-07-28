@@ -15,33 +15,33 @@ services:
     networks:
       - guardant-network
 
-  public-frontend:
-    container_name: guardant-public-frontend
-    build:
-      context: ./frontends/public
-      dockerfile: Dockerfile
-    ports:
-      - "3001:80"
-    environment:
-      - VITE_API_URL=http://public-api:4001
-    depends_on:
-      - public-api
-    restart: unless-stopped
-    networks:
-      - guardant-network
+  # public-frontend:
+  #   container_name: guardant-public-frontend
+  #   build:
+  #     context: ./frontends/public
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3001:80"
+  #   environment:
+  #     - VITE_API_URL=http://public-api:4001
+  #   depends_on:
+  #     - public-api
+  #   restart: unless-stopped
+  #   networks:
+  #     - guardant-network
 
-  embed-widget:
-    container_name: guardant-embed-widget
-    build:
-      context: ./frontends/embed
-      dockerfile: Dockerfile
-    ports:
-      - "3002:80"
-    environment:
-      - VITE_API_URL=http://public-api:4001
-    restart: unless-stopped
-    networks:
-      - guardant-network
+  # embed-widget:
+  #   container_name: guardant-embed-widget
+  #   build:
+  #     context: ./frontends/embed
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3002:80"
+  #   environment:
+  #     - VITE_API_URL=http://public-api:4001
+  #   restart: unless-stopped
+  #   networks:
+  #     - guardant-network
 
   # Backend Services
   admin-api:
@@ -109,7 +109,7 @@ services:
 
   monitoring-worker:
     build:
-      context: ./services/worker-monitoring
+      context: ./services/workers
       dockerfile: Dockerfile
     deploy:
       replicas: 3  # Multiple workers for distributed monitoring
@@ -150,8 +150,8 @@ services:
       - POSTGRES_DB=guardant
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./database/indexes.sql:/docker-entrypoint-initdb.d/02-indexes.sql
+      # - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      # - ./database/indexes.sql:/docker-entrypoint-initdb.d/02-indexes.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U guardant"]
       interval: 10s
@@ -204,7 +204,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      # - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -222,8 +222,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      # - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      # - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
     restart: unless-stopped
