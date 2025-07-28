@@ -121,8 +121,15 @@ const logger = createLogger('api-admin');
 // Configuration manager
 let config: ConfigManager;
 
-// Declare Redis variables - will be initialized after config loads
+// Declare variables - will be initialized after config loads
 let redis: Redis;
+let errorManager: any;
+let retryManager: any;
+let circuitBreakerManager: any;
+let dlqManager: any;
+let tracing: any;
+let healthChecker: any;
+let metricsCollector: any;
 
 // Create advanced Redis wrapper with circuit breaker, retry, and metrics
 let redisWithMetrics: any = {
@@ -530,20 +537,10 @@ const rabbitmqService = {
   }
 };
 
-// Initialize health checker
-const healthChecker = new HealthChecker('api-admin', '1.0.0');
+// Health checker and metrics will be initialized after config loads
+// Removed duplicate declarations here
 
-// Initialize metrics collector
-const metricsCollector = getMetricsCollector('guardant_admin_api');
-
-// Initialize tracing - will be updated after config loads
-let tracing: any;
-
-// Initialize error handling systems - will be updated after config loads
-let errorManager: ErrorManager;
-let retryManager: any;
-let circuitBreakerManager: any;
-let dlqManager: any;
+// Error handling systems already declared above
 
 // Circuit breakers - will be created after config loads
 let redisCircuitBreaker: any;
@@ -551,42 +548,7 @@ let rabbitmqCircuitBreaker: any;
 let golemCircuitBreaker: any;
 let ethereumCircuitBreaker: any;
 
-// Add custom error handlers
-errorManager.addHandler({
-  canHandle: (error) => error instanceof ValidationError,
-  handle: async (error) => {
-    // Log validation errors for analytics
-    logger.info('Validation error occurred', error as Error, {
-      category: 'validation',
-      endpoint: (error as ValidationError).context.operation
-    });
-  }
-});
-
-errorManager.addHandler({
-  canHandle: (error) => error instanceof RateLimitError,
-  handle: async (error) => {
-    // Alert on rate limit exceeded
-    logger.warn('Rate limit exceeded', error as Error, {
-      category: 'rate_limit',
-      user: (error as RateLimitError).context.userId,
-      endpoint: (error as RateLimitError).context.operation
-    });
-  }
-});
-
-errorManager.addHandler({
-  canHandle: (error) => error instanceof DatabaseError,
-  handle: async (error) => {
-    // Alert on database issues
-    logger.error('Database error - potential outage', error as Error, {
-      category: 'database',
-      severity: 'critical'
-    });
-    
-    // Could send to alerting system here
-  }
-});
+// TODO: Custom error handlers will be added after initialization
 
 // Initialize Hono app
 const app = new Hono();
@@ -600,8 +562,8 @@ app.use('*', createMetricsMiddleware(metricsCollector));
 // Add tracing middleware
 app.use('*', createTracingMiddleware(tracing));
 
-// Add error handling middleware (should be last)
-app.use('*', createErrorMiddleware(errorManager));
+// TODO: Error handling middleware will be added after initialization
+// app.use('*', createErrorMiddleware(errorManager));
 
 // Add request logging middleware
 app.use('*', (c, next) => {
@@ -1760,6 +1722,10 @@ async function startServer() {
       environment: config.get('nodeEnv') || 'development',
       jaegerEndpoint: config.get('jaegerEndpoint'),
     });
+    
+    // Initialize health checker and metrics
+    healthChecker = new HealthChecker('api-admin', '1.0.0'); 
+    metricsCollector = getMetricsCollector('guardant_admin_api');
     
     // Initialize error handling systems
     errorManager = new ErrorManager('api-admin', tracing);
