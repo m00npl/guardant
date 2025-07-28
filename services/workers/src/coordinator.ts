@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
-import type { Service, Nest } from '@guardant/shared-types';
+import type { Service, Nest } from '../../packages/shared-types/src/index';
 import { golemStorage } from '@guardant/golem-base-l3';
 
 /**

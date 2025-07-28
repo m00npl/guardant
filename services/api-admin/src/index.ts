@@ -26,7 +26,7 @@ import {
 import { createRetryManager, RetryConfigs } from '../../../shared/retry';
 import { createCircuitBreakerManager, CircuitBreakerConfigs } from '../../../shared/circuit-breaker';
 import { createDLQManager, DLQConfigs } from '../../../shared/dead-letter-queue';
-import { golemStorage } from '@guardant/golem-base-l3';
+import { golemStorage } from '../../packages/golem-base-l3/src/index';
 import { getConfig, ConfigManager } from '../../../shared/config-manager';
 import { 
   AuthManager, 
@@ -38,7 +38,7 @@ import {
   type AuthConfig,
   type NestUser,
   type UserRole 
-} from '@guardant/auth-system';
+} from '../../packages/auth-system/src/index';
 import {
   PaymentManager,
   RedisPaymentStorage,
@@ -52,7 +52,7 @@ import {
   type SubscriptionTier,
   type WalletType,
   type WalletInfo
-} from '@guardant/payments';
+} from '../../packages/payments/src/index';
 // Temporary - inline types until workspace is fixed
 interface Nest {
   id: string;

@@ -5,7 +5,7 @@ import type {
   Incident,
   BillingRecord,
   AuditLog
-} from '@guardant/shared-types';
+} from '../../shared-types/src/index';
 
 import * as fs from "fs";
 import { Logger, type ILogObj } from "tslog";

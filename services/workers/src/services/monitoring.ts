@@ -1,4 +1,4 @@
-import type { Service } from '@guardant/shared-types';
+import type { Service } from '../../../packages/shared-types/src/index';
 import { localCache } from '../local-cache';
 import { v4 as uuidv4 } from 'uuid';
 

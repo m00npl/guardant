@@ -1,4 +1,4 @@
-import type { Nest } from '@guardant/shared-types';
+import type { Nest } from '../../shared-types/src/index';
 
 // User roles in the system
 export type UserRole = 'owner' | 'admin' | 'editor' | 'viewer';
