@@ -1688,10 +1688,14 @@ async function startServer() {
     const port = config.get('port') || 3001;
     
     // Initialize Redis with config
+    // Parse Redis URL (e.g., redis://redis:6379 or redis://user:pass@redis:6379)
+    const redisUrl = config.get('redisUrl') || 'redis://redis:6379';
+    const url = new URL(redisUrl);
+    
     const redisConfig = {
-      host: config.get('redisUrl')?.split('@')[1]?.split(':')[0] || 'localhost',
-      port: parseInt(config.get('redisUrl')?.split(':')[2] || '6379'),
-      password: config.get('redisUrl')?.includes('@') ? config.get('redisUrl')?.split('@')[0]?.split('//')[1]?.split(':')[1] : undefined,
+      host: url.hostname,
+      port: parseInt(url.port) || 6379,
+      password: url.password || undefined,
       maxRetriesPerRequest: null,
       retryDelayOnFailover: 100,
       enableReadyCheck: false,
