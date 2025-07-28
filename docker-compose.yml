@@ -63,8 +63,6 @@ services:
       - GOLEM_PRIVATE_KEY_PATH=/config/golembase/private.key
     volumes:
       - golem-config:/config/golembase
-      - ./shared:/app/shared:ro
-      - ./packages:/app/packages:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,9 +91,7 @@ services:
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
-    volumes:
-      - ./shared:/app/shared:ro
-      - ./packages:/app/packages:ro
+    # No additional volumes needed
     depends_on:
       postgres:
         condition: service_healthy
@@ -125,9 +121,7 @@ services:
       - VAULT_TOKEN=${VAULT_TOKEN:-}
       - WORKER_ID={{.Task.ID}}
       - WORKER_REGION=${WORKER_REGION:-us-east-1}
-    volumes:
-      - ./shared:/app/shared:ro
-      - ./packages:/app/packages:ro
+    # No additional volumes needed
     depends_on:
       postgres:
         condition: service_healthy

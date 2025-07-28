@@ -1,0 +1,27 @@
+# Base image with all dependencies
+FROM oven/bun:1.0-alpine
+
+WORKDIR /app
+
+# Copy all package.json files
+COPY package.json ./
+COPY services/api-admin/package.json ./services/api-admin/
+COPY services/api-public/package.json ./services/api-public/
+COPY services/workers/package.json ./services/workers/
+COPY packages/*/package.json ./packages/*/
+
+# Install all dependencies
+RUN bun install --production
+
+# Install dependencies for services
+RUN cd services/api-admin && bun install --production
+RUN cd services/api-public && bun install --production
+RUN cd services/workers && bun install --production
+
+# Install dependencies for packages
+RUN for dir in packages/*/; do cd /app/$dir && bun install --production || true; done
+
+# Copy all source code
+COPY . .
+
+# This will be the base for other images
