@@ -1881,14 +1881,7 @@ async function startServer() {
   }
 }
 
-    // Handle Redis connection events
-    redis.on('connect', () => {
-      console.log('✅ Redis connected');
-    });
-
-    redis.on('error', (error) => {
-      console.error('❌ Redis connection error:', error);
-    });
+// Redis event handlers are set up during initialization
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
