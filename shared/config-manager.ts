@@ -155,8 +155,8 @@ export class ConfigManager {
       if (jwtSecrets) {
         const secrets = JSON.parse(jwtSecrets);
         this.config.jwtSecret = secrets.secret || this.config.jwtSecret;
-        this.config.refreshSecret = secrets.refresh_secret || this.config.refreshSecret;
-        this.config.sessionSecret = secrets.session_secret || this.config.sessionSecret;
+        this.config.refreshSecret = secrets.refreshSecret || secrets.refresh_secret || this.config.refreshSecret;
+        this.config.sessionSecret = secrets.sessionSecret || secrets.session_secret || this.config.sessionSecret;
       }
 
       // Load database credentials
