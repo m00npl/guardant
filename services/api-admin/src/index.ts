@@ -2020,10 +2020,19 @@ async function startServer() {
       });
       
       // If using random port, log it prominently
-      if (server.port !== serverPort) {
-        console.log(`⚠️  IMPORTANT: Server is running on RANDOM PORT ${server.port} instead of ${serverPort}`);
-        console.log(`⚠️  External mapping ${process.env.PORT || 4040}:${serverPort} will NOT work!`);
-        console.log(`⚠️  Access the server at: http://localhost:${server.port}`);
+      if (server.port !== serverPort || serverPort === 0) {
+        console.log(`⚠️  IMPORTANT: Server is running on DYNAMIC PORT ${server.port}`);
+        console.log(`✅  Access the server internally at: http://localhost:${server.port}`);
+        console.log(`✅  Access from host at: http://localhost:4040`);
+        
+        // Write port to file for external scripts
+        try {
+          const fs = require('fs');
+          fs.writeFileSync('/tmp/admin-api-port.txt', server.port.toString());
+          console.log(`📝 Port written to /tmp/admin-api-port.txt`);
+        } catch (e) {
+          console.log(`⚠️  Could not write port file:`, e.message);
+        }
       }
       
       // Keep the process alive

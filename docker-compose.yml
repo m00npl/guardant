@@ -50,12 +50,11 @@ services:
       context: .
       dockerfile: services/api-admin/Dockerfile
     ports:
-      - "4040:9876"
+      - "4040:45678"  # Use high port number to avoid conflicts
     environment:
       - NODE_ENV=production
-      - PORT=9876
+      - PORT=45678  # High port number unlikely to be in use
       - BUN_CONFIG_NO_CLEAR_TERMINAL=1
-      - USE_RANDOM_PORT=true
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
@@ -75,7 +74,7 @@ services:
         condition: service_healthy
       vault:
         condition: service_started
-    restart: unless-stopped
+    restart: on-failure:3
     networks:
       - guardant-network
 
