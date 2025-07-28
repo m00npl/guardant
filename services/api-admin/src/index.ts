@@ -26,7 +26,7 @@ import {
 import { createRetryManager, RetryConfigs } from '../../../shared/retry';
 import { createCircuitBreakerManager, CircuitBreakerConfigs } from '../../../shared/circuit-breaker';
 import { createDLQManager, DLQConfigs } from '../../../shared/dead-letter-queue';
-import { golemStorage } from '@guardant/golem-storage';
+import { golemStorage } from '@guardant/golem-base-l3';
 import { getConfig, ConfigManager } from '../../../shared/config-manager';
 import { 
   AuthManager, 

@@ -13,6 +13,9 @@ RUN bun install
 COPY services/api-public/src ./src
 COPY services/api-public/tsconfig.json ./tsconfig.json
 
+# Create symlink for shared modules
+RUN mkdir -p /app/../../../ && ln -s /app/shared /app/../../../shared
+
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=4001

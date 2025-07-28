@@ -14,6 +14,8 @@ COPY services/api-admin/src ./src
 COPY services/api-admin/tsconfig.json ./
 
 # Note: shared modules will be mounted as volumes in docker-compose
+# Create symlink for shared modules
+RUN mkdir -p /app/../../../ && ln -s /app/shared /app/../../../shared
 
 # Expose port
 EXPOSE 4000

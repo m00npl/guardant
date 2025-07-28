@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import type { Service, Nest, MonitoringRegion } from '@guardant/shared-types';
-import { golemStorage } from '@guardant/golem-storage';
+import { golemStorage } from '@guardant/golem-base-l3';
 import type { WorkerAntConfig } from './worker-config';
 
 /**

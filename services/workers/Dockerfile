@@ -12,6 +12,9 @@ RUN bun install
 # Copy source code
 COPY services/workers/src ./src
 
+# Create symlink for shared modules
+RUN mkdir -p /app/../../../ && ln -s /app/shared /app/../../../shared
+
 # Environment variables
 ENV NODE_ENV=production
 ENV WORKER_ID=${HOSTNAME}
