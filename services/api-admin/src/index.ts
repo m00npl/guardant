@@ -1931,11 +1931,26 @@ async function startServer() {
       // Skip port check - it might be causing issues with Bun
       console.log(`⚡ Skipping port check, attempting direct bind...`);
       
+      // First, try a simple test server on a random port
+      console.log(`🧪 Testing if we can bind to any port...`);
+      try {
+        const testServer = Bun.serve({
+          port: 0, // Let Bun choose a random port
+          fetch: () => new Response('test'),
+        });
+        console.log(`✅ Test server successfully bound to port ${testServer.port}`);
+        testServer.stop();
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (testError) {
+        console.error(`❌ Cannot bind to ANY port! Error:`, testError);
+      }
+      
       // Try different configurations
       let server;
       let attempts = [
         { port: serverPort, hostname: '0.0.0.0', reusePort: true },
-        { port: serverPort, hostname: '::0', reusePort: true },
+        { port: serverPort, hostname: '127.0.0.1', reusePort: true },
+        { port: serverPort, hostname: 'localhost', reusePort: true },
         { port: serverPort, reusePort: true },
         { port: serverPort },
       ];
@@ -2102,10 +2117,23 @@ function generateWidgetPreviewHTML(nest: Nest, services: any[], options: { theme
 const startupId = Math.random().toString(36).substring(7);
 console.log(`🔑 Startup ID: ${startupId}`);
 
+// Global flag to prevent multiple starts
+let serverStarted = false;
+
 // Only start server if this is the main module
 if (import.meta.main) {
   console.log(`🚀 [${startupId}] Running as main module, starting server...`);
-  startServer();
+  
+  // Ensure we only start once
+  if (!serverStarted) {
+    serverStarted = true;
+    startServer().catch(error => {
+      console.error(`💥 [${startupId}] Server start failed:`, error);
+      process.exit(1);
+    });
+  } else {
+    console.log(`⚠️ [${startupId}] Server already starting, skipping...`);
+  }
 } else {
   console.log(`📦 [${startupId}] Loaded as module, not starting server`);
 }
