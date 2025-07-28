@@ -161,7 +161,11 @@ export class ConfigManager {
       const jwtSecrets = await this.secretManager.getSecret('app/jwt');
       console.log('🔐 Loading JWT secrets from Vault:', jwtSecrets ? 'Found' : 'Not found');
       if (jwtSecrets) {
-        const secrets = JSON.parse(jwtSecrets);
+        console.log('🔐 JWT secrets raw value:', jwtSecrets);
+        console.log('🔐 JWT secrets type:', typeof jwtSecrets);
+        
+        // Check if it's already an object or needs parsing
+        const secrets = typeof jwtSecrets === 'string' ? JSON.parse(jwtSecrets) : jwtSecrets;
         console.log('🔐 JWT secrets keys:', Object.keys(secrets));
         this.config.jwtSecret = secrets.secret || this.config.jwtSecret;
         this.config.refreshSecret = secrets.refreshSecret || secrets.refresh_secret || this.config.refreshSecret;

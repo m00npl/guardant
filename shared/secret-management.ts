@@ -162,6 +162,7 @@ export class VaultSecretProvider implements SecretProvider {
 
       const vaultData = response.data.data;
       const vaultMetadata = response.data.metadata;
+      console.log('🔐 VaultProvider: Response data:', vaultData);
 
       return {
         key,
