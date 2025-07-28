@@ -250,7 +250,7 @@ services:
   # Secret Management
   vault:
     container_name: guardant-vault
-    image: vault:1.15
+    image: hashicorp/vault:1.15
     ports:
       - "8200:8200"
     environment:
