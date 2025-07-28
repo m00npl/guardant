@@ -726,7 +726,13 @@ export class SecretManager {
     }
     
     if (value && typeof value === 'object') {
-      // Try common secret value keys
+      // If object has multiple keys, return the whole object as JSON
+      const keys = Object.keys(value);
+      if (keys.length > 1) {
+        return JSON.stringify(value);
+      }
+      
+      // Try common secret value keys for single values
       return value.value || value.secret || value.password || JSON.stringify(value);
     }
     
