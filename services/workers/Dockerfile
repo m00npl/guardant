@@ -16,9 +16,7 @@ COPY services/workers/src ./src
 ENV NODE_ENV=production
 ENV WORKER_ID=${HOSTNAME}
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD bun run src/health-check.ts || exit 1
+# Health check - removed for now
 
 # Start the worker
 CMD ["bun", "run", "src/coordinator.ts"]

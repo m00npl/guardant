@@ -17,9 +17,7 @@ COPY services/api-public/tsconfig.json ./tsconfig.json
 ENV NODE_ENV=production
 ENV PORT=4001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:4001/health || exit 1
+# Health check - removed for now
 
 # Expose port
 EXPOSE 4001

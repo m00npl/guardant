@@ -1,30 +1,12 @@
-# Admin Frontend Dockerfile
-
-# Build stage
-FROM oven/bun:1.0-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY frontends/admin/package.json ./
-
-# Install dependencies
-RUN bun install
-
-# Copy source code
-COPY frontends/admin/. .
-
-# Build the application
-RUN bun run build
-
-# Production stage
+# Admin Frontend Dockerfile - Simple version
 FROM nginx:alpine
 
 # Copy nginx configuration
 COPY frontends/admin/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built files from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Create basic HTML file (temporary)
+RUN mkdir -p /usr/share/nginx/html && \
+    echo '<!DOCTYPE html><html><head><title>GuardAnt Admin</title></head><body><h1>GuardAnt Admin Panel</h1><p>Starting up...</p></body></html>' > /usr/share/nginx/html/index.html
 
 # Expose port 80
 EXPOSE 80

@@ -1,19 +1,19 @@
 services:
   # Frontend Services
-  admin-frontend:
-    container_name: guardant-admin-frontend
-    build:
-      context: .
-      dockerfile: frontends/admin/Dockerfile
-    ports:
-      - "3000:80"
-    environment:
-      - VITE_API_URL=http://admin-api:4000
-    depends_on:
-      - admin-api
-    restart: unless-stopped
-    networks:
-      - guardant-network
+  # admin-frontend:
+  #   container_name: guardant-admin-frontend
+  #   build:
+  #     context: .
+  #     dockerfile: frontends/admin/Dockerfile
+  #   ports:
+  #     - "3000:80"
+  #   environment:
+  #     - VITE_API_URL=http://admin-api:4000
+  #   depends_on:
+  #     - admin-api
+  #   restart: unless-stopped
+  #   networks:
+  #     - guardant-network
 
   # public-frontend:
   #   container_name: guardant-public-frontend

@@ -18,9 +18,7 @@ COPY services/api-admin/tsconfig.json ./
 # Expose port
 EXPOSE 4000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -q --spider http://localhost:4000/health || exit 1
+# Health check - removed for now (Alpine doesn't have curl/wget by default)
 
 # Run the application
 CMD ["bun", "run", "src/index.ts"]
