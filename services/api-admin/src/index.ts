@@ -553,14 +553,10 @@ let ethereumCircuitBreaker: any;
 // Initialize Hono app
 const app = new Hono();
 
-// Add health tracking middleware
-app.use('*', createHealthMiddleware(healthChecker));
-
-// Add metrics middleware
-app.use('*', createMetricsMiddleware(metricsCollector));
-
-// Add tracing middleware
-app.use('*', createTracingMiddleware(tracing));
+// TODO: Middleware will be added after initialization
+// app.use('*', createHealthMiddleware(healthChecker));
+// app.use('*', createMetricsMiddleware(metricsCollector));
+// app.use('*', createTracingMiddleware(tracing));
 
 // TODO: Error handling middleware will be added after initialization
 // app.use('*', createErrorMiddleware(errorManager));
@@ -1877,6 +1873,7 @@ async function startServer() {
     // Start server
     Bun.serve({
       port,
+      hostname: '0.0.0.0',
       fetch: app.fetch,
     });
   } catch (error) {
