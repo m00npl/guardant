@@ -57,6 +57,7 @@ services:
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - VAULT_ENABLED=true
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-here}
@@ -89,6 +90,7 @@ services:
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - VAULT_ENABLED=true
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
     # No additional volumes needed
@@ -117,6 +119,7 @@ services:
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - VAULT_ENABLED=true
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
       - WORKER_ID={{.Task.ID}}
