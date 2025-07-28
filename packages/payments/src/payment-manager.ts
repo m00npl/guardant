@@ -1,15 +1,17 @@
 import { ethers } from 'ethers';
 import type {
-  HoleskyConfig,
+  GolemL2Config,
   Subscription,
   PaymentTransaction,
   SubscriptionPlan,
   UsageBilling,
   Invoice,
   SubscriptionEvent,
+  WalletType,
 } from './types';
 import { getPlan, calculateOverageCosts, formatETH } from './subscription-plans';
 import { v4 as uuidv4 } from 'uuid';
+import { WalletConnector, WalletInfo } from './wallet-connector';
 
 // Storage interface for payment data
 export interface PaymentStorage {
@@ -36,21 +38,43 @@ export interface PaymentStorage {
 }
 
 export class PaymentManager {
-  private config: HoleskyConfig;
+  private config: GolemL2Config;
   private provider: ethers.JsonRpcProvider;
   private wallet: ethers.Wallet;
   private storage: PaymentStorage;
+  private walletConnector?: WalletConnector;
+  private connectedWallet?: WalletInfo;
 
-  constructor(config: HoleskyConfig, storage: PaymentStorage) {
+  constructor(config: GolemL2Config, storage: PaymentStorage, walletConnector?: WalletConnector) {
     this.config = config;
     this.storage = storage;
+    this.walletConnector = walletConnector;
     
     // Initialize provider and wallet
     this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
     this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
     
-    console.log(`🔗 Connected to Holesky at ${config.rpcUrl}`);
-    console.log(`💰 Wallet address: ${this.wallet.address}`);
+    console.log(`🔗 Connected to Golem Base L2 "Erech" at ${config.rpcUrl}`);
+    console.log(`💰 Treasury wallet: ${this.wallet.address}`);
+  }
+
+  /**
+   * Connect user wallet for payments
+   */
+  async connectWallet(walletType: WalletType): Promise<WalletInfo> {
+    if (!this.walletConnector) {
+      throw new Error('Wallet connector not initialized');
+    }
+    
+    this.connectedWallet = await this.walletConnector.connect(walletType);
+    return this.connectedWallet;
+  }
+
+  /**
+   * Get connected wallet info
+   */
+  getConnectedWallet(): WalletInfo | undefined {
+    return this.connectedWallet;
   }
 
   /**
@@ -60,7 +84,8 @@ export class PaymentManager {
     nestId: string,
     planId: string,
     paymentMethod: string,
-    isYearly: boolean = false
+    isYearly: boolean = false,
+    walletAddress?: string
   ): Promise<{ success: boolean; subscription?: Subscription; error?: string }> {
     try {
       const plan = getPlan(planId);
@@ -81,6 +106,12 @@ export class PaymentManager {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         paymentMethod: 'eth',
+        paymentWallet: walletAddress && this.connectedWallet ? {
+          address: walletAddress,
+          type: this.connectedWallet.type,
+          chainId: this.connectedWallet.chainId,
+          ensName: this.connectedWallet.ensName,
+        } : undefined,
         usage: {
           services: 0,
           workers: 0,
@@ -104,7 +135,8 @@ export class PaymentManager {
           subscription.id,
           'subscription',
           amount,
-          `${plan.name} subscription (${isYearly ? 'yearly' : 'monthly'})`
+          `${plan.name} subscription (${isYearly ? 'yearly' : 'monthly'})`,
+          walletAddress
         );
 
         if (!paymentResult.success) {
@@ -132,7 +164,8 @@ export class PaymentManager {
     subscriptionId: string,
     type: 'subscription' | 'upgrade' | 'overage',
     amount: string,
-    description: string
+    description: string,
+    fromWallet?: string
   ): Promise<{ success: boolean; transaction?: PaymentTransaction; error?: string }> {
     try {
       const transaction: PaymentTransaction = {
@@ -144,15 +177,23 @@ export class PaymentManager {
         currency: 'ETH',
         status: 'pending',
         description,
+        from: fromWallet || this.connectedWallet?.address,
+        to: this.config.wallet.address, // Treasury wallet
+        walletType: this.connectedWallet?.type,
+        walletMeta: this.connectedWallet ? {
+          ensName: this.connectedWallet.ensName,
+          chainId: this.connectedWallet.chainId,
+        } : undefined,
         createdAt: Date.now(),
         retryCount: 0,
       };
 
       await this.storage.createTransaction(transaction);
 
-      // For demo purposes, we'll simulate blockchain transaction
-      // In production, this would interact with actual payment contracts
-      const result = await this.simulatePayment(transaction);
+      // Process payment based on whether user wallet is connected
+      const result = fromWallet && this.walletConnector?.isConnected()
+        ? await this.processWalletPayment(transaction)
+        : await this.simulatePayment(transaction);
 
       if (result.success) {
         transaction.status = 'confirmed';
@@ -172,6 +213,56 @@ export class PaymentManager {
       return { success: result.success, transaction, error: result.error };
     } catch (error: any) {
       console.error('Error creating payment:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Process payment from connected wallet
+   */
+  private async processWalletPayment(transaction: PaymentTransaction): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    try {
+      if (!this.walletConnector || !this.walletConnector.isConnected()) {
+        return { success: false, error: 'No wallet connected' };
+      }
+
+      // Prepare transaction
+      const tx: ethers.TransactionRequest = {
+        to: this.config.wallet.address,
+        value: transaction.amount,
+        data: ethers.hexlify(ethers.toUtf8Bytes(
+          JSON.stringify({
+            type: transaction.type,
+            subscriptionId: transaction.subscriptionId,
+            nestId: transaction.nestId,
+          })
+        )),
+      };
+
+      // Estimate gas
+      const gasEstimate = await this.walletConnector.estimateGas(tx);
+      const gasPrice = await this.walletConnector.getGasPrice();
+      
+      tx.gasLimit = gasEstimate;
+      tx.gasPrice = gasPrice;
+
+      // Send transaction
+      console.log(`📤 Sending transaction from ${transaction.from} to ${transaction.to}`);
+      const txResponse = await this.walletConnector.sendTransaction(tx);
+      
+      console.log(`💳 Payment sent: ${formatETH(transaction.amount)} ETH`);
+      console.log(`🔗 Transaction hash: ${txResponse.hash}`);
+      
+      // Wait for confirmation
+      const receipt = await txResponse.wait();
+      
+      if (receipt && receipt.status === 1) {
+        return { success: true, txHash: txResponse.hash };
+      } else {
+        return { success: false, error: 'Transaction failed' };
+      }
+    } catch (error: any) {
+      console.error('Wallet payment error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -235,7 +326,8 @@ export class PaymentManager {
   async upgradeSubscription(
     nestId: string,
     newPlanId: string,
-    isYearly: boolean = false
+    isYearly: boolean = false,
+    walletAddress?: string
   ): Promise<{ success: boolean; transaction?: PaymentTransaction; error?: string }> {
     try {
       const subscription = await this.storage.getSubscriptionByNest(nestId);
@@ -273,7 +365,8 @@ export class PaymentManager {
           subscription.id,
           'upgrade',
           proratedAmount,
-          `Upgrade to ${newPlan.name}`
+          `Upgrade to ${newPlan.name}`,
+          walletAddress
         );
       }
 

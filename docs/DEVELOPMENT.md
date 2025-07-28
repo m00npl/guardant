@@ -177,6 +177,7 @@ guardant/
 
 - **Container**: Docker for all services
 - **Orchestration**: Docker Compose (dev), Kubernetes (prod)
+- **Secrets**: HashiCorp Vault for secure secret management
 - **Monitoring**: OpenTelemetry + Prometheus
 - **Logging**: Structured JSON logging
 - **CI/CD**: GitHub Actions
@@ -347,6 +348,71 @@ app.onError((err, c) => {
     timestamp: Date.now(),
   }, 500);
 });
+```
+
+## Configuration Management
+
+### ConfigManager
+
+GuardAnt uses a centralized configuration system that integrates with HashiCorp Vault:
+
+```typescript
+import { getConfig } from './shared/config-manager';
+
+// Initialize configuration (done once at startup)
+const config = await getConfig('my-service');
+
+// Get configuration values
+const port = config.get('port');              // Optional value
+const jwtSecret = config.getRequired('jwtSecret'); // Required value
+
+// Get all config (for debugging)
+const allConfig = config.getAll();
+
+// Get safe config without secrets
+const safeConfig = config.getSafeConfig();
+console.log('Config:', safeConfig);
+```
+
+### Secret Management with Vault
+
+Sensitive configuration is stored in HashiCorp Vault:
+
+1. **Start Vault**:
+   ```bash
+   docker compose up -d vault
+   ```
+
+2. **Initialize Vault**:
+   ```bash
+   docker exec -it guardant-vault /vault/scripts/init-vault.sh
+   ```
+
+3. **Configure services** with generated tokens in `.env`:
+   ```env
+   VAULT_ENABLED=true
+   VAULT_ADDR=http://localhost:8200
+   VAULT_TOKEN=hvs.CAESIH...  # Service-specific token
+   ```
+
+See [Vault Documentation](./VAULT.md) for detailed setup and usage.
+
+### Environment Variables
+
+Non-sensitive configuration uses environment variables:
+
+```env
+# Application
+NODE_ENV=development
+PORT=4000
+
+# Features
+GOLEM_ENABLED=true
+ENABLE_ANALYTICS=true
+
+# External services (URLs only, credentials in Vault)
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
 ## Testing

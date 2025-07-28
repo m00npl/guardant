@@ -1,3 +1,6 @@
+// Wallet types
+export type WalletType = 'metamask' | 'walletconnect' | 'coinbase' | 'trust' | 'brave' | 'rainbow' | 'safe' | 'ledger';
+
 // Subscription plans
 export type SubscriptionTier = 'free' | 'pro' | 'enterprise';
 
@@ -44,12 +47,19 @@ export interface Subscription {
   updatedAt: number;
   
   // Payment info
-  paymentMethod: 'eth';
+  paymentMethod: 'eth' | 'usdc' | 'usdt';
+  paymentWallet?: {
+    address: string;
+    type: WalletType;
+    chainId: number;
+    ensName?: string;
+  };
   lastPayment?: {
     amount: string;
     transactionHash: string;
     timestamp: number;
     status: 'pending' | 'confirmed' | 'failed';
+    walletType?: WalletType;
   };
   
   // Usage tracking
@@ -69,15 +79,25 @@ export interface PaymentTransaction {
   nestId: string;
   subscriptionId: string;
   type: 'subscription' | 'upgrade' | 'overage';
-  amount: string; // ETH amount in wei
-  currency: 'ETH';
+  amount: string; // Amount in wei or token units
+  currency: 'ETH' | 'USDC' | 'USDT';
   status: 'pending' | 'processing' | 'confirmed' | 'failed' | 'refunded';
   
   // Blockchain data
+  from?: string; // Sender wallet address
+  to?: string; // Receiver address (contract or wallet)
   transactionHash?: string;
   blockNumber?: number;
   gasUsed?: string;
   gasPrice?: string;
+  
+  // Wallet info
+  walletType?: WalletType;
+  walletMeta?: {
+    ensName?: string;
+    connectorId?: string;
+    chainId?: number;
+  };
   
   // Metadata
   description: string;
@@ -127,19 +147,29 @@ export interface UsageBilling {
   paidAt?: number;
 }
 
-// Holesky ETH configuration
-export interface HoleskyConfig {
+// Golem Base L2 "Erech" configuration
+export interface GolemL2Config {
   rpcUrl: string;
-  chainId: number; // 17000 for Holesky
+  chainId: number; // 393530 for Golem Base L2 "Erech"
   contracts: {
     subscriptionManager: string;
     paymentProcessor: string;
+    usdcToken?: string; // USDC token address
+    usdtToken?: string; // USDT token address
   };
   wallet: {
     privateKey: string;
     address: string;
   };
+  acceptedTokens: {
+    ETH: boolean;
+    USDC: boolean;
+    USDT: boolean;
+  };
 }
+
+// Legacy alias for compatibility
+export type HoleskyConfig = GolemL2Config;
 
 // Payment method
 export interface PaymentMethod {
@@ -150,11 +180,15 @@ export interface PaymentMethod {
   name: string;
   isDefault: boolean;
   metadata?: {
-    walletType?: 'metamask' | 'walletconnect' | 'manual';
+    walletType?: WalletType;
     contractType?: 'multisig' | 'safe';
+    chainId?: number;
+    ensName?: string;
+    isConnected?: boolean;
   };
   createdAt: number;
   lastUsedAt?: number;
+  verifiedAt?: number;
 }
 
 // Invoice

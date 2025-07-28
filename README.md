@@ -131,27 +131,21 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-Required environment variables:
-```env
-# Golem Base Configuration
-GOLEM_CHAIN_ID=600606
-GOLEM_HTTP_URL=https://kaolin.holesky.golem-base.io/rpc
-GOLEM_WS_URL=wss://kaolin.holesky.golem-base.io/rpc/ws
-GOLEM_PRIVATE_KEY=your_private_key_hex
-GOLEM_WALLET_ADDRESS=your_wallet_address
+GuardAnt uses **HashiCorp Vault** for secure secret management. Basic configuration:
 
-# Database
+```env
+# Vault Configuration (recommended)
+VAULT_ENABLED=true
+VAULT_ADDR=http://localhost:8200
+VAULT_TOKEN=your_service_token_here
+
+# Or use environment variables (development only)
+JWT_SECRET=your_jwt_secret_here
 REDIS_URL=redis://localhost:6379
 RABBITMQ_URL=amqp://localhost:5672
-
-# Authentication
-JWT_SECRET=your_jwt_secret_here
-SESSION_SECRET=your_session_secret_here
-
-# Monitoring
-JAEGER_ENDPOINT=http://localhost:14268/api/traces
-PROMETHEUS_ENDPOINT=http://localhost:9090
 ```
+
+For production, all sensitive data should be stored in Vault. See [Vault Setup](./docs/VAULT.md) for details.
 
 4. **Start the development environment**
 ```bash

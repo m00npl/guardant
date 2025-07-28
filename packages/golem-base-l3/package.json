@@ -1,6 +1,7 @@
 {
-  "name": "@guardant/golem-storage",
+  "name": "@guardant/golem-base-l3",
   "version": "1.0.0",
+  "description": "Golem Base L3 blockchain integration for GuardAnt monitoring data",
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

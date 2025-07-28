@@ -27,6 +27,7 @@ import { createRetryManager, RetryConfigs } from '../../../shared/retry';
 import { createCircuitBreakerManager, CircuitBreakerConfigs } from '../../../shared/circuit-breaker';
 import { createDLQManager, DLQConfigs } from '../../../shared/dead-letter-queue';
 import { golemStorage } from '@guardant/golem-storage';
+import { getConfig, ConfigManager } from '../../../shared/config-manager';
 import { 
   AuthManager, 
   RedisAuthStorage, 
@@ -41,11 +42,16 @@ import {
 import {
   PaymentManager,
   RedisPaymentStorage,
+  WalletConnector,
+  createWalletConnector,
   getAllPlans,
   getPlan,
   formatETH,
+  type GolemL2Config,
   type HoleskyConfig,
-  type SubscriptionTier
+  type SubscriptionTier,
+  type WalletType,
+  type WalletInfo
 } from '@guardant/payments';
 // Temporary - inline types until workspace is fixed
 interface Nest {
@@ -112,18 +118,9 @@ interface MonitoringRegion {
 // Initialize service logger
 const logger = createLogger('api-admin');
 
-// Redis storage configuration
-const redisConfig = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-  retryDelayOnFailover: 100,
-  enableReadyCheck: false,
-  lazyConnect: true,
-};
-
-const redis = new Redis(redisConfig);
+// Configuration manager
+let config: ConfigManager;
+let redis: Redis;
 
 // Create advanced Redis wrapper with circuit breaker, retry, and metrics
 const redisWithMetrics = {
@@ -259,12 +256,7 @@ redis.on('close', () => {
 });
 
 // RabbitMQ configuration
-const rabbitmqConfig = {
-  url: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
-  workerResultsQueue: 'worker_results',
-  workerCommandsExchange: 'worker_commands',
-};
-
+let rabbitmqConfig: any;
 let rabbitmqConnection: amqp.Connection | null = null;
 let rabbitmqChannel: amqp.Channel | null = null;
 
@@ -555,38 +547,20 @@ const healthChecker = new HealthChecker('api-admin', '1.0.0');
 // Initialize metrics collector
 const metricsCollector = getMetricsCollector('guardant_admin_api');
 
-// Initialize tracing
-const tracing = initializeTracing('guardant-admin-api', {
-  serviceVersion: '1.0.0',
-  environment: process.env.NODE_ENV || 'development',
-});
+// Initialize tracing - will be updated after config loads
+let tracing: any;
 
-// Initialize error handling systems
-const errorManager = new ErrorManager('api-admin', tracing);
-const retryManager = createRetryManager('api-admin', tracing);
-const circuitBreakerManager = createCircuitBreakerManager('api-admin', tracing);
-const dlqManager = createDLQManager('api-admin', tracing);
+// Initialize error handling systems - will be updated after config loads
+let errorManager: ErrorManager;
+let retryManager: any;
+let circuitBreakerManager: any;
+let dlqManager: any;
 
-// Create circuit breakers for external services
-const redisCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
-  'redis',
-  CircuitBreakerConfigs.DATABASE
-);
-
-const rabbitmqCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
-  'rabbitmq',
-  CircuitBreakerConfigs.EXTERNAL_API
-);
-
-const golemCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
-  'golem-l3',
-  CircuitBreakerConfigs.BLOCKCHAIN
-);
-
-const ethereumCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
-  'ethereum',
-  CircuitBreakerConfigs.BLOCKCHAIN
-);
+// Circuit breakers - will be created after config loads
+let redisCircuitBreaker: any;
+let rabbitmqCircuitBreaker: any;
+let golemCircuitBreaker: any;
+let ethereumCircuitBreaker: any;
 
 // Add custom error handlers
 errorManager.addHandler({
@@ -688,62 +662,14 @@ app.use('*', (c, next) => {
   });
 });
 
-// Authentication configuration
-const authConfig: AuthConfig = {
-  jwt: {
-    accessTokenSecret: process.env.JWT_ACCESS_SECRET || 'guardant-access-secret-change-in-production',
-    refreshTokenSecret: process.env.JWT_REFRESH_SECRET || 'guardant-refresh-secret-change-in-production',
-    accessTokenTtl: 15 * 60, // 15 minutes
-    refreshTokenTtl: 7 * 24 * 60 * 60, // 7 days
-    issuer: 'guardant-api-admin',
-    audience: 'guardant-client',
-  },
-  password: {
-    minLength: 8,
-    requireUppercase: true,
-    requireLowercase: true,
-    requireNumbers: true,
-    requireSymbols: false,
-    preventReuse: 5,
-  },
-  security: {
-    maxFailedAttempts: 5,
-    lockoutDuration: 15 * 60, // 15 minutes
-    sessionTimeout: 24 * 60 * 60, // 24 hours
-    maxActiveSessions: 5,
-  },
-  rateLimiting: {
-    loginAttempts: {
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      maxAttempts: 5,
-    },
-    apiRequests: {
-      windowMs: 60 * 1000, // 1 minute
-      maxRequests: 100,
-    },
-  },
-};
-
-// Initialize authentication system
-const authStorage = new RedisAuthStorage(redis);
-const authManager = new AuthManager(authConfig, authStorage);
-
-// Initialize payment system
-const holeskyConfig: HoleskyConfig = {
-  rpcUrl: process.env.HOLESKY_RPC_URL || 'https://ethereum-holesky.publicnode.com',
-  chainId: 17000, // Holesky testnet
-  contracts: {
-    subscriptionManager: process.env.SUBSCRIPTION_CONTRACT || '0x0000000000000000000000000000000000000000',
-    paymentProcessor: process.env.PAYMENT_CONTRACT || '0x0000000000000000000000000000000000000000',
-  },
-  wallet: {
-    privateKey: process.env.PAYMENT_PRIVATE_KEY || '0x0000000000000000000000000000000000000000000000000000000000000001',
-    address: process.env.PAYMENT_WALLET_ADDRESS || '0x0000000000000000000000000000000000000000',
-  },
-};
-
-const paymentStorage = new RedisPaymentStorage(redis);
-const paymentManager = new PaymentManager(holeskyConfig, paymentStorage);
+// Authentication and payment systems - will be initialized after config loads
+let authConfig: AuthConfig;
+let authStorage: RedisAuthStorage;
+let authManager: AuthManager;
+let holeskyConfig: HoleskyConfig;
+let paymentStorage: RedisPaymentStorage;
+let paymentManager: PaymentManager;
+let walletConnector: WalletConnector;
 
 // Middleware
 app.use('*', cors());
@@ -1463,7 +1389,7 @@ app.post('/api/subscription/create', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
-    const { planId, isYearly, paymentMethod } = body;
+    const { planId, isYearly, paymentMethod, walletAddress } = body;
 
     if (!planId) {
       return c.json<ApiResponse>({ success: false, error: 'Plan ID required' }, 400);
@@ -1473,7 +1399,8 @@ app.post('/api/subscription/create', async (c) => {
       nestId,
       planId,
       paymentMethod || 'eth',
-      isYearly || false
+      isYearly || false,
+      walletAddress
     );
 
     if (!result.success) {
@@ -1523,7 +1450,8 @@ app.post('/api/subscription/upgrade', async (c) => {
     const result = await paymentManager.upgradeSubscription(
       nestId,
       planId,
-      isYearly || false
+      isYearly || false,
+      body.walletAddress
     );
 
     if (!result.success) {
@@ -1593,6 +1521,60 @@ app.post('/api/subscription/transactions', async (c) => {
     return c.json<ApiResponse>({
       success: true,
       data: transactions
+    });
+  } catch (error: any) {
+    return c.json<ApiResponse>({ success: false, error: error.message }, 500);
+  }
+});
+
+// Wallet connection endpoints
+app.post('/api/wallet/detect', async (c) => {
+  try {
+    const availableWallets = await walletConnector.detectWallets();
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: availableWallets
+    });
+  } catch (error: any) {
+    return c.json<ApiResponse>({ success: false, error: error.message }, 500);
+  }
+});
+
+app.post('/api/wallet/connect', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { walletType } = body;
+    
+    if (!walletType) {
+      return c.json<ApiResponse>({ success: false, error: 'Wallet type required' }, 400);
+    }
+    
+    const walletInfo = await paymentManager.connectWallet(walletType as WalletType);
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: walletInfo
+    });
+  } catch (error: any) {
+    return c.json<ApiResponse>({ success: false, error: error.message }, 500);
+  }
+});
+
+app.post('/api/wallet/info', async (c) => {
+  try {
+    const walletInfo = paymentManager.getConnectedWallet();
+    
+    if (!walletInfo) {
+      return c.json<ApiResponse>({ 
+        success: false, 
+        error: 'No wallet connected' 
+      }, 404);
+    }
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: walletInfo
     });
   } catch (error: any) {
     return c.json<ApiResponse>({ success: false, error: error.message }, 500);
@@ -1747,20 +1729,145 @@ app.post('/api/worker-ants/status', async (c) => {
 });
 
 // Initialize storage and start server
-const port = process.env.PORT || 3001;
-
 async function startServer() {
   try {
+    // Initialize configuration
+    console.log('📋 Loading configuration...');
+    config = await getConfig('api-admin');
+    const port = config.get('port') || 3001;
+    
+    // Initialize Redis with config
+    const redisConfig = {
+      host: config.get('redisUrl')?.split('@')[1]?.split(':')[0] || 'localhost',
+      port: parseInt(config.get('redisUrl')?.split(':')[2] || '6379'),
+      password: config.get('redisUrl')?.includes('@') ? config.get('redisUrl')?.split('@')[0]?.split('//')[1]?.split(':')[1] : undefined,
+      maxRetriesPerRequest: null,
+      retryDelayOnFailover: 100,
+      enableReadyCheck: false,
+      lazyConnect: true,
+    };
+    redis = new Redis(redisConfig);
+    
     // Test Redis connection
     await redis.ping();
     console.log('✅ Redis storage initialized');
     
+    // Initialize tracing with config
+    tracing = initializeTracing('guardant-admin-api', {
+      serviceVersion: '1.0.0',
+      environment: config.get('nodeEnv') || 'development',
+      jaegerEndpoint: config.get('jaegerEndpoint'),
+    });
+    
+    // Initialize error handling systems
+    errorManager = new ErrorManager('api-admin', tracing);
+    retryManager = createRetryManager('api-admin', tracing);
+    circuitBreakerManager = createCircuitBreakerManager('api-admin', tracing);
+    dlqManager = createDLQManager('api-admin', tracing);
+    
+    // Create circuit breakers
+    redisCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
+      'redis',
+      CircuitBreakerConfigs.DATABASE
+    );
+    rabbitmqCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
+      'rabbitmq',
+      CircuitBreakerConfigs.EXTERNAL_API
+    );
+    golemCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
+      'golem-l3',
+      CircuitBreakerConfigs.BLOCKCHAIN
+    );
+    ethereumCircuitBreaker = circuitBreakerManager.createCircuitBreaker(
+      'ethereum',
+      CircuitBreakerConfigs.BLOCKCHAIN
+    );
+    
+    // Initialize authentication with config
+    authConfig = {
+      jwt: {
+        accessTokenSecret: config.getRequired('jwtSecret'),
+        refreshTokenSecret: config.getRequired('refreshSecret'),
+        accessTokenTtl: 15 * 60, // 15 minutes
+        refreshTokenTtl: 7 * 24 * 60 * 60, // 7 days
+        issuer: 'guardant-api-admin',
+        audience: 'guardant-client',
+      },
+      password: {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireNumbers: true,
+        requireSymbols: false,
+        preventReuse: 5,
+      },
+      security: {
+        maxFailedAttempts: 5,
+        lockoutDuration: 15 * 60, // 15 minutes
+        sessionTimeout: 24 * 60 * 60, // 24 hours
+        maxActiveSessions: 5,
+      },
+      rateLimiting: {
+        loginAttempts: {
+          windowMs: 15 * 60 * 1000, // 15 minutes
+          maxAttempts: 5,
+        },
+        apiRequests: {
+          windowMs: 60 * 1000, // 1 minute
+          maxRequests: 100,
+        },
+      },
+    };
+    authStorage = new RedisAuthStorage(redis);
+    authManager = new AuthManager(authConfig, authStorage);
+    
+    // Initialize payment system with config
+    // Golem Base L2 "Erech" configuration
+    holeskyConfig = {
+      rpcUrl: config.get('golemL2HttpUrl') || 'https://execution.holesky.l2.gobas.me',
+      chainId: 393530, // Golem Base L2 "Erech"
+      contracts: {
+        subscriptionManager: '0x0000000000000000000000000000000000000000',
+        paymentProcessor: '0x0000000000000000000000000000000000000000',
+        usdcToken: '0x0000000000000000000000000000000000000000', // TODO: Deploy USDC on L2
+        usdtToken: '0x0000000000000000000000000000000000000000', // TODO: Deploy USDT on L2
+      },
+      wallet: {
+        privateKey: config.get('golemPrivateKey') || '0x0000000000000000000000000000000000000000000000000000000000000001',
+        address: config.get('golemWalletAddress') || '0x0000000000000000000000000000000000000000',
+      },
+      acceptedTokens: {
+        ETH: true,
+        USDC: false, // Enable after deployment
+        USDT: false, // Enable after deployment
+      },
+    };
+    paymentStorage = new RedisPaymentStorage(redis);
+    
+    // Initialize wallet connector
+    walletConnector = createWalletConnector({
+      chainId: holeskyConfig.chainId,
+      rpcUrl: holeskyConfig.rpcUrl,
+      supportedWallets: ['metamask', 'walletconnect', 'coinbase', 'trust', 'brave', 'rainbow'],
+    });
+    
+    paymentManager = new PaymentManager(holeskyConfig, paymentStorage, walletConnector);
+    
+    // RabbitMQ configuration from config
+    rabbitmqConfig = {
+      url: config.get('rabbitmqUrl') || 'amqp://localhost:5672',
+      workerResultsQueue: 'worker_results',
+      workerCommandsExchange: 'worker_commands',
+    };
+    
     // Initialize Golem L3 storage
-    try {
-      await golemStorage.initialize();
-      console.log('✅ Golem L3 storage initialized');
-    } catch (golemError) {
-      console.warn('⚠️ Golem L3 initialization failed, using memory fallback:', golemError.message);
+    if (config.get('golemEnabled')) {
+      try {
+        await golemStorage.initialize();
+        console.log('✅ Golem L3 storage initialized');
+      } catch (golemError) {
+        console.warn('⚠️ Golem L3 initialization failed, using memory fallback:', golemError.message);
+      }
     }
     
     // Connect to RabbitMQ (optional)
@@ -1793,27 +1900,38 @@ async function startServer() {
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);
+    console.log('🔐 Configuration loaded:', config.getSafeConfig());
+    
+    // Start server
+    Bun.serve({
+      port,
+      fetch: app.fetch,
+    });
   } catch (error) {
     console.error('❌ Failed to initialize services:', error);
+    process.exit(1);
   }
 }
 
-// Handle Redis connection events
-redis.on('connect', () => {
-  console.log('✅ Redis connected');
-});
+    // Handle Redis connection events
+    redis.on('connect', () => {
+      console.log('✅ Redis connected');
+    });
 
-redis.on('error', (error) => {
-  console.error('❌ Redis connection error:', error);
-});
+    redis.on('error', (error) => {
+      console.error('❌ Redis connection error:', error);
+    });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('📛 Closing connections...');
-  await redis.disconnect();
+  if (redis) await redis.disconnect();
   await golemStorage.disconnect();
   if (rabbitmqConnection) {
     await rabbitmqConnection.close();
+  }
+  if (config) {
+    await config.shutdown();
   }
 });
 
@@ -1889,7 +2007,4 @@ function generateWidgetPreviewHTML(nest: Nest, services: any[], options: { theme
 
 startServer();
 
-export default {
-  port,
-  fetch: app.fetch,
-};
+export default app;
