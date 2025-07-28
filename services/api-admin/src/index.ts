@@ -1684,9 +1684,19 @@ app.post('/api/worker-ants/status', async (c) => {
   });
 });
 
+// Track if startServer was already called
+let startServerCalled = false;
+
 // Initialize storage and start server
 async function startServer() {
   console.log(`🚦 [${startupId}] Starting server initialization...`);
+  
+  // Check if already called
+  if (startServerCalled) {
+    console.error(`❌ [${startupId}] startServer already called! Preventing duplicate execution.`);
+    return;
+  }
+  startServerCalled = true;
   
   try {
     // Initialize configuration
@@ -1942,17 +1952,22 @@ async function startServer() {
       
       // First, try a simple test server on a random port
       console.log(`🧪 Testing if we can bind to any port...`);
+      let testPort = null;
       try {
         const testServer = Bun.serve({
           port: 0, // Let Bun choose a random port
           fetch: () => new Response('test'),
         });
-        console.log(`✅ Test server successfully bound to port ${testServer.port}`);
+        testPort = testServer.port;
+        console.log(`✅ Test server successfully bound to port ${testPort}`);
         testServer.stop();
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (testError) {
         console.error(`❌ Cannot bind to ANY port! Error:`, testError);
       }
+      
+      // If specific port fails, try using a random port as fallback
+      const useRandomPort = process.env.USE_RANDOM_PORT === 'true';
       
       // Try different configurations
       let server;
@@ -1963,6 +1978,14 @@ async function startServer() {
         { port: serverPort, reusePort: true },
         { port: serverPort },
       ];
+      
+      // Add random port as last resort
+      if (testPort) {
+        attempts.push(
+          { port: 0, hostname: '0.0.0.0' },
+          { port: 0 }
+        );
+      }
       
       let lastError;
       for (const config of attempts) {
@@ -1995,6 +2018,13 @@ async function startServer() {
         url: server.url,
         development: server.development
       });
+      
+      // If using random port, log it prominently
+      if (server.port !== serverPort) {
+        console.log(`⚠️  IMPORTANT: Server is running on RANDOM PORT ${server.port} instead of ${serverPort}`);
+        console.log(`⚠️  External mapping ${process.env.PORT || 4040}:${serverPort} will NOT work!`);
+        console.log(`⚠️  Access the server at: http://localhost:${server.port}`);
+      }
       
       // Keep the process alive
       process.on('SIGINT', () => {
