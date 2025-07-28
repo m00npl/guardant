@@ -171,6 +171,11 @@ export class ConfigManager {
         this.config.refreshSecret = secrets.refreshSecret || secrets.refresh_secret || this.config.refreshSecret;
         this.config.sessionSecret = secrets.sessionSecret || secrets.session_secret || this.config.sessionSecret;
         console.log('🔐 Loaded refreshSecret:', this.config.refreshSecret ? 'Yes' : 'No');
+        console.log('🔐 Final config JWT values:', {
+          jwtSecret: this.config.jwtSecret ? 'Set' : 'Missing',
+          refreshSecret: this.config.refreshSecret ? 'Set' : 'Missing',
+          sessionSecret: this.config.sessionSecret ? 'Set' : 'Missing'
+        });
       }
 
       // Load database credentials
@@ -243,6 +248,9 @@ export class ConfigManager {
   get<K extends keyof ServiceConfig>(key: K): ServiceConfig[K] | undefined {
     if (!this.initialized) {
       throw new Error('ConfigManager not initialized. Call initialize() first.');
+    }
+    if (key === 'refreshSecret' || key === 'jwtSecret') {
+      console.log(`🔐 Getting ${key} from config:`, this.config[key] ? 'Present' : 'Missing');
     }
     return this.config[key] as ServiceConfig[K] | undefined;
   }
