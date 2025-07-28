@@ -121,6 +121,7 @@ export class VaultSecretProvider implements SecretProvider {
     }
 
     try {
+      console.log(`🔐 VaultProvider: Making ${method} request to ${url}`);
       const response = await fetch(url, {
         method,
         headers,
@@ -152,6 +153,7 @@ export class VaultSecretProvider implements SecretProvider {
 
   async read(key: string): Promise<SecretData | null> {
     try {
+      console.log(`🔐 VaultProvider: Reading secret from path: ${this.mountPath}/data/${key}`);
       const response = await this.makeRequest('GET', `data/${key}`);
       
       if (!response || !response.data) {
