@@ -1683,7 +1683,18 @@ async function startServer() {
     // Initialize configuration
     console.log(`📋 [${startupId}] Loading configuration...`);
     config = await getConfig('api-admin');
-    const port = config.get('port') || 3001;
+    
+    // Debug port configuration
+    const configPort = config.get('port');
+    const envPort = process.env.PORT;
+    console.log(`🔍 Port configuration:`, {
+      configPort,
+      envPort,
+      parsedEnvPort: envPort ? parseInt(envPort, 10) : undefined,
+      defaultPort: 3001
+    });
+    
+    const port = configPort || 3001;
     
     // Initialize Redis with config
     // Parse Redis URL (e.g., redis://redis:6379 or redis://user:pass@redis:6379)
@@ -1894,50 +1905,64 @@ async function startServer() {
         versions: process.versions
       });
       
+      // Check if another process might be using the port
+      try {
+        const { execSync } = require('child_process');
+        const processes = execSync('ps aux').toString();
+        console.log(`🔍 Running processes with 'bun':`);
+        processes.split('\n').filter(line => line.includes('bun')).forEach(line => {
+          console.log(line);
+        });
+        
+        // Try to check what's on port 4000
+        try {
+          const portCheck = execSync('netstat -tulpn | grep :4000 || true').toString();
+          console.log(`🔍 Port 4000 usage:`, portCheck || 'Not found');
+        } catch (e) {
+          console.log(`🔍 Could not check port with netstat`);
+        }
+      } catch (e) {
+        console.log(`🔍 Could not check processes`);
+      }
+      
       // Wait a bit to ensure all resources are ready
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if port is available before trying to bind
-      const net = require('net');
-      const checkPort = () => new Promise((resolve) => {
-        const tester = net.createServer()
-          .once('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-              console.error(`❌ Port ${serverPort} is already in use by another process`);
-              resolve(false);
-            } else {
-              console.error(`❌ Port check error:`, err);
-              resolve(false);
-            }
-          })
-          .once('listening', () => {
-            tester.once('close', () => {
-              console.log(`✅ Port ${serverPort} is available`);
-              resolve(true);
-            }).close();
-          })
-          .listen(serverPort, '0.0.0.0');
-      });
+      // Skip port check - it might be causing issues with Bun
+      console.log(`⚡ Skipping port check, attempting direct bind...`);
       
-      const portAvailable = await checkPort();
-      if (!portAvailable) {
-        throw new Error(`Port ${serverPort} is not available`);
+      // Try different configurations
+      let server;
+      let attempts = [
+        { port: serverPort, hostname: '0.0.0.0', reusePort: true },
+        { port: serverPort, hostname: '::0', reusePort: true },
+        { port: serverPort, reusePort: true },
+        { port: serverPort },
+      ];
+      
+      let lastError;
+      for (const config of attempts) {
+        try {
+          console.log(`🔧 Trying server config:`, config);
+          server = Bun.serve({
+            ...config,
+            fetch: app.fetch,
+            error(error) {
+              console.error('🚨 Request error:', error);
+              return new Response('Internal Server Error', { status: 500 });
+            },
+          });
+          console.log(`✅ Server started with config:`, config);
+          break;
+        } catch (error) {
+          console.error(`❌ Failed with config ${JSON.stringify(config)}:`, error.message);
+          lastError = error;
+        }
       }
       
-      // Small delay after port check
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const server = Bun.serve({
-        port: serverPort,
-        hostname: '0.0.0.0',
-        fetch: app.fetch,
-        error(error) {
-          console.error('🚨 Request error:', error);
-          return new Response('Internal Server Error', { status: 500 });
-        },
-        // Explicitly set server options for Docker
-        reusePort: true,
-      });
+      if (!server) {
+        throw lastError || new Error('Failed to start server with any configuration');
+      }
       
       console.log(`✅ Server started successfully!`);
       console.log(`📡 Server details:`, {
