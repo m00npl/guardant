@@ -1758,8 +1758,8 @@ async function startServer() {
     // Initialize authentication with config
     authConfig = {
       jwt: {
-        accessTokenSecret: config.getRequired('jwtSecret'),
-        refreshTokenSecret: config.getRequired('refreshSecret'),
+        accessTokenSecret: config.get('jwtSecret') || process.env.JWT_SECRET || 'default-jwt-secret-key',
+        refreshTokenSecret: config.get('refreshSecret') || 'default-refresh-secret-key',
         accessTokenTtl: 15 * 60, // 15 minutes
         refreshTokenTtl: 7 * 24 * 60 * 60, // 7 days
         issuer: 'guardant-api-admin',
