@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Install all dependencies
-RUN bun install --production
+RUN bun install
 
 # Set working directory to service
 WORKDIR /app/services/api-admin
