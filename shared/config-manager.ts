@@ -77,6 +77,13 @@ export class ConfigManager {
     this.loadEnvironmentConfig();
 
     // Initialize SecretManager if Vault is enabled
+    console.log('🔐 Checking Vault config:', {
+      enabled: this.config.vaultEnabled,
+      hasAddr: !!this.config.vaultAddr,
+      hasToken: !!this.config.vaultToken,
+      addr: this.config.vaultAddr
+    });
+    
     if (this.config.vaultEnabled && this.config.vaultAddr && this.config.vaultToken) {
       this.logger.info('Vault is enabled, initializing SecretManager');
       
@@ -152,11 +159,14 @@ export class ConfigManager {
     try {
       // Load application secrets
       const jwtSecrets = await this.secretManager.getSecret('app/jwt');
+      console.log('🔐 Loading JWT secrets from Vault:', jwtSecrets ? 'Found' : 'Not found');
       if (jwtSecrets) {
         const secrets = JSON.parse(jwtSecrets);
+        console.log('🔐 JWT secrets keys:', Object.keys(secrets));
         this.config.jwtSecret = secrets.secret || this.config.jwtSecret;
         this.config.refreshSecret = secrets.refreshSecret || secrets.refresh_secret || this.config.refreshSecret;
         this.config.sessionSecret = secrets.sessionSecret || secrets.session_secret || this.config.sessionSecret;
+        console.log('🔐 Loaded refreshSecret:', this.config.refreshSecret ? 'Yes' : 'No');
       }
 
       // Load database credentials
