@@ -4,13 +4,13 @@ FROM oven/bun:1
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY services/workers/package.json ./
 
 # Install dependencies
 RUN bun install
 
 # Copy source code
-COPY src ./src
+COPY services/workers/src ./src
 
 # Environment variables
 ENV NODE_ENV=production

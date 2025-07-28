@@ -4,14 +4,14 @@ FROM oven/bun:1 as base
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
-COPY tsconfig.json ./
+COPY services/api-public/package.json ./
 
 # Install dependencies
 RUN bun install
 
 # Copy source code
-COPY src ./src
+COPY services/api-public/src ./src
+COPY services/api-public/tsconfig.json ./tsconfig.json
 
 # Set environment
 ENV NODE_ENV=production

@@ -3,8 +3,8 @@ services:
   admin-frontend:
     container_name: guardant-admin-frontend
     build:
-      context: ./frontends/admin
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontends/admin/Dockerfile
     ports:
       - "3000:80"
     environment:
@@ -47,8 +47,8 @@ services:
   admin-api:
     container_name: guardant-admin-api
     build:
-      context: ./services/api-admin
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/api-admin/Dockerfile
     ports:
       - "4000:4000"
     environment:
@@ -80,8 +80,8 @@ services:
   public-api:
     container_name: guardant-public-api
     build:
-      context: ./services/api-public
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/api-public/Dockerfile
     ports:
       - "4001:4001"
     environment:
@@ -109,8 +109,8 @@ services:
 
   monitoring-worker:
     build:
-      context: ./services/workers
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/workers/Dockerfile
     deploy:
       replicas: 3  # Multiple workers for distributed monitoring
     environment:

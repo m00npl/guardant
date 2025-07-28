@@ -6,13 +6,13 @@ FROM oven/bun:1.0-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY frontends/admin/package.json ./
 
 # Install dependencies
 RUN bun install
 
 # Copy source code
-COPY . .
+COPY frontends/admin/. .
 
 # Build the application
 RUN bun run build
@@ -21,7 +21,7 @@ RUN bun run build
 FROM nginx:alpine
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontends/admin/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
