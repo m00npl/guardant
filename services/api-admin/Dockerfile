@@ -17,12 +17,6 @@ RUN cd services/api-admin && bun install
 # Copy package source code
 COPY packages ./packages/
 
-# Build packages
-RUN cd packages/shared-types && bun run build
-RUN cd packages/auth-system && bun run build
-RUN cd packages/golem-base-l3 && bun run build
-RUN cd packages/payments && bun run build
-
 # Copy service code
 COPY services/api-admin/src ./services/api-admin/src
 COPY services/api-admin/tsconfig.json ./services/api-admin/
