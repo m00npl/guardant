@@ -1,12 +1,34 @@
-# Admin Frontend Dockerfile - Simple version
+# Admin Frontend Dockerfile - Multi-stage build
+# Stage 1: Build
+FROM node:20-alpine as builder
+
+WORKDIR /app
+
+# Copy package files
+COPY frontends/admin/package*.json ./
+COPY frontends/admin/tsconfig*.json ./
+COPY frontends/admin/vite.config.ts ./
+COPY frontends/admin/postcss.config.js ./
+COPY frontends/admin/tailwind.config.js ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source files
+COPY frontends/admin/index.html ./
+COPY frontends/admin/src ./src
+
+# Build the application
+RUN npm run build
+
+# Stage 2: Serve
 FROM nginx:alpine
 
 # Copy nginx configuration
 COPY frontends/admin/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Create basic HTML file (temporary)
-RUN mkdir -p /usr/share/nginx/html && \
-    echo '<!DOCTYPE html><html><head><title>GuardAnt Admin</title></head><body><h1>GuardAnt Admin Panel</h1><p>Starting up...</p></body></html>' > /usr/share/nginx/html/index.html
+# Copy built files from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Expose port 80
 EXPOSE 80
