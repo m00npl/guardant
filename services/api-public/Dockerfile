@@ -1,5 +1,5 @@
 # Public API Dockerfile  
-FROM oven/bun:1.0-alpine
+FROM oven/bun:1
 
 WORKDIR /app
 
