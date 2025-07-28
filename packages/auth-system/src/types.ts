@@ -1,4 +1,4 @@
-import type { Nest } from '../../shared-types/src/index';
+import type { Nest } from '/app/packages/shared-types/src/index';
 
 // User roles in the system
 export type UserRole = 'owner' | 'admin' | 'editor' | 'viewer';

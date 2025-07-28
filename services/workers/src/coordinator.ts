@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
-import type { Service, Nest } from '../../packages/shared-types/src/index';
-import { golemStorage } from '@guardant/golem-base-l3';
+import type { Service, Nest } from '/app/packages/shared-types/src/index';
+import { golemStorage } from '/app/packages/golem-base-l3/src/index';
 
 /**
  * Coordinator odpowiedzialny za rozdzielanie zadań między workerami

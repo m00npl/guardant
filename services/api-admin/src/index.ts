@@ -3,10 +3,10 @@ import { cors } from 'hono/cors';
 import { v4 as uuidv4 } from 'uuid';
 import Redis from 'ioredis';
 import amqp from 'amqplib';
-import { createLogger, createRequestLogger, PerformanceTimer } from '../../../shared/logger';
-import { HealthChecker, commonHealthChecks, createHealthEndpoints, createHealthMiddleware } from '../../../shared/health';
-import { getMetricsCollector, createMetricsMiddleware } from '../../../shared/metrics';
-import { initializeTracing, createTracingMiddleware } from '../../../shared/tracing';
+import { createLogger, createRequestLogger, PerformanceTimer } from '/app/shared/logger';
+import { HealthChecker, commonHealthChecks, createHealthEndpoints, createHealthMiddleware } from '/app/shared/health';
+import { getMetricsCollector, createMetricsMiddleware } from '/app/shared/metrics';
+import { initializeTracing, createTracingMiddleware } from '/app/shared/tracing';
 import { 
   ErrorManager, 
   createErrorMiddleware,
@@ -22,12 +22,12 @@ import {
   GuardAntError,
   ErrorCategory,
   ErrorSeverity
-} from '../../../shared/error-handling';
-import { createRetryManager, RetryConfigs } from '../../../shared/retry';
-import { createCircuitBreakerManager, CircuitBreakerConfigs } from '../../../shared/circuit-breaker';
-import { createDLQManager, DLQConfigs } from '../../../shared/dead-letter-queue';
-import { golemStorage } from '../../packages/golem-base-l3/src/index';
-import { getConfig, ConfigManager } from '../../../shared/config-manager';
+} from '/app/shared/error-handling';
+import { createRetryManager, RetryConfigs } from '/app/shared/retry';
+import { createCircuitBreakerManager, CircuitBreakerConfigs } from '/app/shared/circuit-breaker';
+import { createDLQManager, DLQConfigs } from '/app/shared/dead-letter-queue';
+import { golemStorage } from '/app/packages/golem-base-l3/src/index';
+import { getConfig, ConfigManager } from '/app/shared/config-manager';
 import { 
   AuthManager, 
   RedisAuthStorage, 
@@ -38,7 +38,7 @@ import {
   type AuthConfig,
   type NestUser,
   type UserRole 
-} from '../../packages/auth-system/src/index';
+} from '/app/packages/auth-system/src/index';
 import {
   PaymentManager,
   RedisPaymentStorage,
@@ -52,7 +52,7 @@ import {
   type SubscriptionTier,
   type WalletType,
   type WalletInfo
-} from '../../packages/payments/src/index';
+} from '/app/packages/payments/src/index';
 // Temporary - inline types until workspace is fixed
 interface Nest {
   id: string;

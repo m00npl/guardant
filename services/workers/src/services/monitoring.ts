@@ -1,4 +1,4 @@
-import type { Service } from '../../../packages/shared-types/src/index';
+import type { Service } from '/app/packages/shared-types/src/index';
 import { localCache } from '../local-cache';
 import { v4 as uuidv4 } from 'uuid';
 

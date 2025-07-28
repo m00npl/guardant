@@ -64,6 +64,7 @@ services:
     volumes:
       - golem-config:/config/golembase
       - ./shared:/app/shared:ro
+      - ./packages:/app/packages:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,6 +95,7 @@ services:
       - VAULT_TOKEN=${VAULT_TOKEN:-}
     volumes:
       - ./shared:/app/shared:ro
+      - ./packages:/app/packages:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -125,6 +127,7 @@ services:
       - WORKER_REGION=${WORKER_REGION:-us-east-1}
     volumes:
       - ./shared:/app/shared:ro
+      - ./packages:/app/packages:ro
     depends_on:
       postgres:
         condition: service_healthy

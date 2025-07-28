@@ -5,7 +5,7 @@ import type {
   Incident,
   BillingRecord,
   AuditLog
-} from '../../shared-types/src/index';
+} from '/app/packages/shared-types/src/index';
 
 import * as fs from "fs";
 import { Logger, type ILogObj } from "tslog";
