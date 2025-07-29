@@ -236,8 +236,10 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guardant
       - RABBITMQ_DEFAULT_PASS=guardant123
+      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s

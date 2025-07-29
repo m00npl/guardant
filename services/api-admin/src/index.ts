@@ -19,6 +19,7 @@ import amqp from 'amqplib';
 import { createLogger, createRequestLogger, PerformanceTimer } from '/app/shared/logger';
 import { HealthChecker, commonHealthChecks, createHealthEndpoints, createHealthMiddleware } from '/app/shared/health';
 import { deploymentApi } from './deployment-api';
+import { workersApi } from './routes/workers';
 import { getMetricsCollector, createMetricsMiddleware } from '/app/shared/metrics';
 import { initializeTracing, createTracingMiddleware } from '/app/shared/tracing';
 import { 
@@ -2111,6 +2112,10 @@ async function startServer() {
       app.route('/api/admin/deployment', deploymentApi);
       console.log('🚀 Deployment API enabled at /api/admin/deployment');
     }
+    
+    // Mount workers API
+    app.route('/api/admin/workers', workersApi);
+    console.log('👷 Workers API enabled at /api/admin/workers');
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);

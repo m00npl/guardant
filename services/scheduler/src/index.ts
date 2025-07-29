@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import amqp from 'amqplib';
 import { createLogger } from '../../../shared/logger';
+import { startHeartbeatListener } from './heartbeat-listener';
 
 const logger = createLogger('monitoring-scheduler');
 
@@ -127,17 +128,38 @@ async function sendCheckCommand(service: ScheduledService) {
     timestamp: Date.now(),
   };
   
-  await rabbitmqChannel.publish(
-    'worker_commands',
-    'check_service_once',
-    Buffer.from(JSON.stringify(command)),
-    { persistent: true }
-  );
-  
-  logger.debug('📤 Sent check command', { 
-    serviceId: service.id,
-    target: service.target 
-  });
+  // Determine routing based on regions
+  const regions = service.monitoring?.regions || [];
+  if (regions.length > 0) {
+    // Send to specific regions
+    for (const region of regions) {
+      await rabbitmqChannel.publish(
+        'worker_commands',
+        `check_service_once.${region}`,
+        Buffer.from(JSON.stringify(command)),
+        { persistent: true }
+      );
+      
+      logger.debug('📤 Sent region-specific check', { 
+        serviceId: service.id,
+        region,
+        target: service.target 
+      });
+    }
+  } else {
+    // Send to any available worker
+    await rabbitmqChannel.publish(
+      'worker_commands',
+      'check_service_once',
+      Buffer.from(JSON.stringify(command)),
+      { persistent: true }
+    );
+    
+    logger.debug('📤 Sent global check command', { 
+      serviceId: service.id,
+      target: service.target 
+    });
+  }
 }
 
 // Propagate cached result to service
@@ -446,6 +468,9 @@ async function start() {
     
     // Start listening for results
     await listenForResults();
+    
+    // Start heartbeat listener
+    await startHeartbeatListener(rabbitmqChannel!);
     
     // Start scheduler loop
     schedulerInterval = setInterval(schedulerLoop, config.checkInterval);

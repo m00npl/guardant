@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  monitoring-worker:
+    container_name: guardant-worker-${WORKER_ID:-1}
+    build:
+      context: .
+      dockerfile: services/workers/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4002
+      
+      # External connections
+      - DATABASE_URL=${DATABASE_URL:-postgresql://guardant:guardant123@your-main-server:5432/guardant}
+      - REDIS_URL=${REDIS_URL:-redis://your-main-server:6379}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guardant:guardant123@your-main-server:5672}
+      
+      # Vault configuration (optional)
+      - VAULT_ENABLED=${VAULT_ENABLED:-false}
+      - VAULT_ADDR=${VAULT_ADDR:-http://your-main-server:8200}
+      - VAULT_TOKEN=${VAULT_TOKEN:-}
+      
+      # Worker configuration
+      - WORKER_ID=${WORKER_ID:-worker-1}
+      - WORKER_REGION=${WORKER_REGION:-us-east-1}
+      - WORKER_REPLICAS=1
+      - RESTORE_MONITORING=false  # Scheduler handles this
+      
+    restart: unless-stopped
+    networks:
+      - worker-network
+
+networks:
+  worker-network:
+    driver: bridge

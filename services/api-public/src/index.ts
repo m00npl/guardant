@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { corsMiddleware } from './middleware/cors';
 import { statusRoutes } from './routes/status';
+import { registrationApi } from './routes/worker-registration';
 import type { ApiResponse } from './types';
 import { createLogger, createRequestLogger } from '../../../shared/logger';
 import { HealthChecker, commonHealthChecks, createHealthEndpoints, createHealthMiddleware } from '../../../shared/health';
@@ -104,6 +105,7 @@ app.get('/metrics/json', (c) => {
 
 // API routes
 app.route('/api/status', statusRoutes);
+app.route('/api/public/workers', registrationApi);
 
 // Root endpoint - API info
 app.get('/', (c) => {
