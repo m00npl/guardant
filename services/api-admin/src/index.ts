@@ -1735,7 +1735,7 @@ async function startServer() {
       defaultPort: 3001
     });
     
-    const port = configPort || 3001;
+    const port = configPort || parseInt(process.env.PORT || '3002', 10);
     
     // Initialize Redis with config
     // Parse Redis URL (e.g., redis://redis:6379 or redis://user:pass@redis:6379)
@@ -2041,20 +2041,9 @@ async function startServer() {
       // Try different configurations
       let server;
       let attempts = [
-        { port: serverPort, hostname: '0.0.0.0', reusePort: true },
-        { port: serverPort, hostname: '127.0.0.1', reusePort: true },
-        { port: serverPort, hostname: 'localhost', reusePort: true },
-        { port: serverPort, reusePort: true },
+        { port: serverPort, hostname: '0.0.0.0' },
         { port: serverPort },
       ];
-      
-      // Add random port as last resort
-      if (testPort) {
-        attempts.push(
-          { port: 0, hostname: '0.0.0.0' },
-          { port: 0 }
-        );
-      }
       
       let lastError;
       for (const config of attempts) {
