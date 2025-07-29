@@ -630,9 +630,9 @@ let walletConnector: WalletConnector;
 // Middleware
 app.use('*', cors());
 
-// Authentication middleware for protected routes
-const authMiddleware = createAuthMiddleware(authManager);
-const nestOwnershipMiddleware = createNestOwnershipMiddleware('nestId');
+// Authentication middleware for protected routes - will be initialized after authManager
+let authMiddleware: any;
+let nestOwnershipMiddleware: any;
 
 // Available regions
 const availableRegions: MonitoringRegion[] = [
@@ -1820,6 +1820,10 @@ async function startServer() {
     };
     authStorage = new RedisAuthStorage(redis);
     authManager = new AuthManager(authConfig, authStorage);
+    
+    // Initialize authentication middleware now that authManager is ready
+    authMiddleware = createAuthMiddleware(authManager);
+    nestOwnershipMiddleware = createNestOwnershipMiddleware('nestId');
     
     // Initialize payment system with config
     // Golem Base L2 "Erech" configuration
