@@ -2275,4 +2275,5 @@ if (shouldStart) {
   console.log(`📦 [${startupId}] Loaded as module, not starting server`);
 }
 
-export default app;
+// Don't export app to prevent Bun's automatic server detection
+// export default app;
