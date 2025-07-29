@@ -24,4 +24,4 @@ ENV NODE_ENV=production
 ENV WORKER_ID=${HOSTNAME}
 
 # Start the worker
-CMD ["bun", "run", "src/coordinator.ts"]
+CMD ["bun", "run", "src/index.ts"]
