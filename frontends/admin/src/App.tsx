@@ -12,7 +12,7 @@ import { Layout } from './components/Layout';
 
 export const App: React.FC = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/admin">
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

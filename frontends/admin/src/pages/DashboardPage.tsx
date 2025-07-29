@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -189,12 +190,12 @@ export const DashboardPage: React.FC = () => {
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <a
-              href="/services"
+            <Link
+              to="/services"
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               Add New Service
-            </a>
+            </Link>
             <a
               href={`https://${user?.subdomain}.guardant.me`}
               target="_blank"

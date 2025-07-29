@@ -6,6 +6,12 @@ export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/admin/' : '/',
   server: {
     port: 5173,
-    host: true
+    host: true,
+    proxy: {
+      '/api/admin': {
+        target: 'http://localhost:45678',
+        changeOrigin: true
+      }
+    }
   }
 })
