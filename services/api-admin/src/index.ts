@@ -2046,13 +2046,38 @@ async function startServer() {
         console.log(`✅ Server started on port ${finalPort}`);
       } catch (error) {
         console.error(`❌ Failed to start on port ${finalPort}:`, error);
-        // Try alternative approach
-        server = Bun.serve({
-          port: finalPort,
-          fetch: app.fetch,
-        });
+        
+        // Try with just hostname without explicit binding
+        try {
+          console.log(`🔄 Trying alternative server configuration...`);
+          server = Bun.serve({
+            port: finalPort,
+            hostname: '0.0.0.0',
+            fetch: app.fetch,
+          });
+          console.log(`✅ Alternative server configuration successful`);
+        } catch (altError) {
+          console.error(`❌ Alternative configuration also failed:`, altError);
+          
+          // Final attempt - let Bun choose everything
+          try {
+            console.log(`🔄 Final attempt - using minimal configuration...`);
+            server = Bun.serve({
+              port: finalPort,
+              fetch: app.fetch,
+            });
+            console.log(`✅ Minimal configuration successful`);
+          } catch (finalError) {
+            console.error(`💀 All server start attempts failed:`, finalError);
+            throw new Error(`Cannot start server on port ${finalPort}: ${finalError.message}`);
+          }
+        }
       }
       
+      
+      if (!server) {
+        throw new Error('Server failed to initialize');
+      }
       
       console.log(`✅ Server started successfully!`);
       console.log(`📡 Server details:`, {
