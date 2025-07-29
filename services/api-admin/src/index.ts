@@ -1625,6 +1625,8 @@ app.post('/api/admin/dashboard/stats', async (c) => {
     const stats = {
       totalWatchers,
       activeWatchers,
+      totalServices: totalWatchers, // Alias for frontend compatibility
+      activeServices: activeWatchers, // Alias for frontend compatibility
       incidents: 0,
       avgResponseTime: 0,
       uptime: 100,
