@@ -634,16 +634,6 @@ let walletConnector: WalletConnector;
 // Middleware
 app.use('*', cors());
 
-// Global middleware to ensure context is available
-app.use('*', async (c, next) => {
-  // Initialize empty context
-  c.set('storage', null);
-  c.set('authManager', null);
-  c.set('paymentManager', null);
-  c.set('redis', null);
-  await next();
-});
-
 // Authentication middleware for protected routes - will be initialized after authManager
 let authMiddleware: any;
 let nestOwnershipMiddleware: any;
