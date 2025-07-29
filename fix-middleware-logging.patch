@@ -1,0 +1,32 @@
+--- a/services/api-admin/src/index.ts
++++ b/services/api-admin/src/index.ts
+@@ -1974,6 +1974,7 @@ async function main() {
+     app.use('/api/admin/*', async (c, next) => {
+       // Skip auth for login/register/refresh endpoints
+       const path = c.req.path;
++      console.log('🔐 Middleware entry - path:', path, 'method:', c.req.method);
+       console.log('🔐 Auth middleware check for path:', path);
+       
+       if (path.includes('/auth/login') || 
+@@ -1988,6 +1989,7 @@ async function main() {
+       console.log('🔒 Applying auth middleware');
+       console.log('🔍 AuthManager exists?', !!authManager);
+       console.log('🔍 AuthMiddleware exists?', !!authMiddleware);
++      console.log('🔍 Has Authorization header?', !!c.req.header('Authorization'));
+       
+       if (!authMiddleware) {
+         console.error('❌ authMiddleware not initialized!');
+@@ -1995,6 +1997,13 @@ async function main() {
+       }
+       
+       return authMiddleware(c, next);
++      
++      // Add debug after middleware
++      const result = await authMiddleware(c, async () => {
++        console.log('✅ Auth middleware passed');
++        console.log('🔍 User in context after auth:', c.get('user'));
++        return next();
++      });
+     });
+     
+     // Mount platform admin routes

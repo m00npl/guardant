@@ -1975,6 +1975,7 @@ async function startServer() {
       // Skip auth for login/register/refresh endpoints
       const path = c.req.path;
       console.log('🔐 Auth middleware check for path:', path);
+      console.log('🔍 Has Authorization header?', !!c.req.header('Authorization'));
       
       if (path.includes('/auth/login') || 
           path.includes('/auth/register') || 
@@ -1994,7 +1995,15 @@ async function startServer() {
         return c.json({ success: false, error: 'Auth system not ready' }, 503);
       }
       
-      return authMiddleware(c, next);
+      // Apply auth middleware and check user context
+      const result = await authMiddleware(c, async () => {
+        console.log('✅ Auth middleware passed');
+        console.log('🔍 User in context:', c.get('user'));
+        console.log('🔍 Context vars:', Object.keys(c.var || {}));
+        return next();
+      });
+      
+      return result;
     });
     
     // Mount platform admin routes
