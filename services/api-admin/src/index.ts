@@ -2190,9 +2190,11 @@ if (!(global as any)[GLOBAL_SERVER_STATE_KEY]) {
   (global as any)[GLOBAL_SERVER_STATE_KEY] = false;
 }
 
-// Only start server if this is the main module
-if (import.meta.main) {
-  console.log(`🚀 [${startupId}] Running as main module, checking server state...`);
+// Always start server when running with Bun
+const shouldStart = import.meta.main || process.env.DOCKER === 'true';
+
+if (shouldStart) {
+  console.log(`🚀 [${startupId}] Starting server (main: ${import.meta.main}, docker: ${process.env.DOCKER})...`);
   
   // Double-check with global state
   if (!(global as any)[GLOBAL_SERVER_STATE_KEY]) {
