@@ -260,9 +260,22 @@ export class MonitoringCoordinator {
   }
 }
 
+// Parse Redis URL if provided
+function getRedisConfigForCoordinator() {
+  if (process.env.REDIS_URL) {
+    const url = new URL(process.env.REDIS_URL);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port) || 6379,
+      password: url.password || undefined,
+    };
+  }
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+  };
+}
+
 // Export singleton if used as part of API
-export const coordinator = new MonitoringCoordinator({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-});
+export const coordinator = new MonitoringCoordinator(getRedisConfigForCoordinator());
