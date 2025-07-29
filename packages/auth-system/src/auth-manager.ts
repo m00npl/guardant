@@ -19,6 +19,34 @@ import type {
 
 // Default role permissions
 const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions> = {
+  platform_admin: {
+    canManageNest: true,
+    canViewNest: true,
+    canUpdateNestSettings: true,
+    canDeleteNest: true,
+    canCreateServices: true,
+    canEditServices: true,
+    canDeleteServices: true,
+    canViewServices: true,
+    canInviteUsers: true,
+    canManageUsers: true,
+    canViewUsers: true,
+    canManageBilling: true,
+    canViewBilling: true,
+    canViewAnalytics: true,
+    canExportData: true,
+    canUseApi: true,
+    canManageApiKeys: true,
+    // Platform admin specific permissions
+    canViewAllNests: true,
+    canManageAllNests: true,
+    canViewAllUsers: true,
+    canManageAllUsers: true,
+    canViewPlatformStats: true,
+    canManagePlatformSettings: true,
+    canModerateContent: true,
+    canManageSubscriptions: true,
+  },
   owner: {
     canManageNest: true,
     canViewNest: true,

@@ -7,6 +7,7 @@ interface User {
   email: string;
   subdomain: string;
   name: string;
+  role?: 'platform_admin' | 'owner' | 'admin' | 'editor' | 'viewer';
   subscription: {
     tier: 'free' | 'pro' | 'unlimited';
     servicesLimit: number;

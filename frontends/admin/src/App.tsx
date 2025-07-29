@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { SubscriptionPage } from './pages/SubscriptionPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { PlatformAdminPage } from './pages/PlatformAdminPage';
 import { Layout } from './components/Layout';
 
 export const App: React.FC = () => {
@@ -24,6 +25,7 @@ export const App: React.FC = () => {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/subscription" element={<SubscriptionPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/platform" element={<PlatformAdminPage />} />
             </Route>
           </Route>
         </Routes>

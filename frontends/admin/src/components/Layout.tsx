@@ -15,6 +15,11 @@ export const Layout: React.FC = () => {
     { name: 'Settings', href: '/settings', icon: '⚙️' },
   ];
 
+  // Add platform admin link if user has the role
+  if (user?.role === 'platform_admin') {
+    navigation.push({ name: 'Platform Admin', href: '/platform', icon: '🛡️' });
+  }
+
   const handleLogout = async () => {
     try {
       await logout();

@@ -1,7 +1,7 @@
 import type { Nest } from '/app/packages/shared-types/src/index';
 
 // User roles in the system
-export type UserRole = 'owner' | 'admin' | 'editor' | 'viewer';
+export type UserRole = 'platform_admin' | 'owner' | 'admin' | 'editor' | 'viewer';
 
 // Permissions for each role
 export interface RolePermissions {
@@ -33,6 +33,16 @@ export interface RolePermissions {
   // API access
   canUseApi: boolean;
   canManageApiKeys: boolean;
+  
+  // Platform admin permissions
+  canViewAllNests?: boolean;
+  canManageAllNests?: boolean;
+  canViewAllUsers?: boolean;
+  canManageAllUsers?: boolean;
+  canViewPlatformStats?: boolean;
+  canManagePlatformSettings?: boolean;
+  canModerateContent?: boolean;
+  canManageSubscriptions?: boolean;
 }
 
 // User information

@@ -48,6 +48,7 @@ import {
   type NestUser,
   type UserRole 
 } from '/app/packages/auth-system/src/index';
+import { platformRoutes } from './platform-routes';
 import {
   PaymentManager,
   RedisPaymentStorage,
@@ -1904,6 +1905,16 @@ async function startServer() {
     // Apply authentication middleware to all /api/* routes
     // This must be done after authManager is initialized
     app.use('/api/*', authMiddleware);
+    
+    // Mount platform admin routes
+    platformRoutes.use((c, next) => {
+      // Pass required services to platform routes
+      c.set('storage', hybridStorage);
+      c.set('authManager', authManager);
+      c.set('paymentManager', paymentManager);
+      return next();
+    });
+    app.route('/api/platform', platformRoutes);
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);
