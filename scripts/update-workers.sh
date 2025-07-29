@@ -5,7 +5,7 @@
 API_URL=${1:-http://localhost:4040}
 TOKEN=${2:-$DEPLOYMENT_TOKEN}
 COMMAND=${3:-update}
-REPO_URL=${4:-https://github.com/guardant-me/worker.git}
+REPO_URL=${4:-https://github.com/m00npl/guardant-worker.git}
 BRANCH=${5:-main}
 VERSION=${6:-$(date +%Y%m%d-%H%M%S)}
 
