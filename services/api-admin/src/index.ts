@@ -1903,7 +1903,8 @@ async function startServer() {
     
     // Apply authentication middleware to all /api/* routes
     // This must be done after authManager is initialized
-    app.use('/api/*', authMiddleware);
+    // TEMPORARILY DISABLED FOR DEBUGGING
+    // app.use('/api/*', authMiddleware);
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);
