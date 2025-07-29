@@ -25,7 +25,7 @@ export const DashboardPage: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/dashboard/stats`);
+      const response = await axios.post(`${API_URL}/dashboard/stats`);
       setStats(response.data.data);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -67,9 +67,11 @@ export const DashboardPage: React.FC = () => {
                     <div className="text-2xl font-semibold text-gray-900">
                       {stats?.totalServices || 0}
                     </div>
-                    <div className="ml-2 text-sm text-gray-600">
-                      / {user?.subscription.servicesLimit} limit
-                    </div>
+                    {user && (
+                      <div className="ml-2 text-sm text-gray-600">
+                        / {user.subscription?.servicesLimit || 'unlimited'} limit
+                      </div>
+                    )}
                   </dd>
                 </dl>
               </div>

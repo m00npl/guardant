@@ -27,7 +27,7 @@ export const SubscriptionPage: React.FC = () => {
 
   const fetchPlans = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/subscription/plans`);
+      const response = await axios.post(`${API_URL}/subscription/plans`);
       setPlans(response.data.data);
     } catch (error) {
       toast.error('Failed to fetch plans');
@@ -39,7 +39,7 @@ export const SubscriptionPage: React.FC = () => {
   const handleUpgrade = async (planId: string) => {
     setUpgrading(true);
     try {
-      const response = await axios.post(`${API_URL}/api/subscription/upgrade`, { planId });
+      const response = await axios.post(`${API_URL}/subscription/upgrade`, { planId });
       toast.success('Subscription upgraded successfully!');
       window.location.reload(); // Refresh to update user data
     } catch (error: any) {
@@ -53,7 +53,7 @@ export const SubscriptionPage: React.FC = () => {
     if (!confirm('Are you sure you want to cancel your subscription?')) return;
 
     try {
-      await axios.post(`${API_URL}/api/subscription/cancel`);
+      await axios.post(`${API_URL}/subscription/cancel`);
       toast.success('Subscription cancelled');
       window.location.reload();
     } catch (error) {

@@ -40,13 +40,13 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose }) 
 
     try {
       if (service?.id) {
-        await axios.post(`${API_URL}/api/services/update`, {
+        await axios.post(`${API_URL}/services/update`, {
           serviceId: service.id,
           ...formData
         });
         toast.success('Service updated successfully');
       } else {
-        await axios.post(`${API_URL}/api/services/create`, formData);
+        await axios.post(`${API_URL}/services/create`, formData);
         toast.success('Service created successfully');
       }
       onClose();

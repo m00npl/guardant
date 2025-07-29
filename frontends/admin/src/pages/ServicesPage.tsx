@@ -29,7 +29,7 @@ export const ServicesPage: React.FC = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/services/list`);
+      const response = await axios.post(`${API_URL}/services/list`);
       setServices(response.data.data);
     } catch (error) {
       toast.error('Failed to fetch services');
@@ -42,7 +42,7 @@ export const ServicesPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this service?')) return;
 
     try {
-      await axios.post(`${API_URL}/api/services/delete`, { serviceId });
+      await axios.post(`${API_URL}/services/delete`, { serviceId });
       toast.success('Service deleted successfully');
       fetchServices();
     } catch (error) {
