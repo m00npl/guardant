@@ -1957,9 +1957,6 @@ async function startServer() {
     // Mount platform admin routes
     app.route('/api/admin/platform', platformRoutes);
     
-    // Call setupRoutes after all services are initialized
-    setupRoutes();
-    
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);
     console.log('🔐 Configuration loaded:', config.getSafeConfig());
