@@ -18,6 +18,7 @@ import Redis from 'ioredis';
 import amqp from 'amqplib';
 import { createLogger, createRequestLogger, PerformanceTimer } from '/app/shared/logger';
 import { HealthChecker, commonHealthChecks, createHealthEndpoints, createHealthMiddleware } from '/app/shared/health';
+import { deploymentApi } from './deployment-api';
 import { getMetricsCollector, createMetricsMiddleware } from '/app/shared/metrics';
 import { initializeTracing, createTracingMiddleware } from '/app/shared/tracing';
 import { 
@@ -2104,6 +2105,12 @@ async function startServer() {
     
     // Mount platform admin routes
     app.route('/api/admin/platform', platformRoutes);
+    
+    // Mount deployment API (only in development/staging)
+    if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEPLOYMENT_API === 'true') {
+      app.route('/api/admin/deployment', deploymentApi);
+      console.log('🚀 Deployment API enabled at /api/admin/deployment');
+    }
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);

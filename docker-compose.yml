@@ -86,8 +86,12 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
       - REFRESH_SECRET=${REFRESH_SECRET:-your-super-secret-refresh-key-change-this-in-production}
       - GOLEM_PRIVATE_KEY_PATH=/config/golembase/private.key
+      - ENABLE_DEPLOYMENT_API=true
+      - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-your-deployment-token-123}
     volumes:
       - golem-config:/config/golembase
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/app/deployment
     depends_on:
       postgres:
         condition: service_healthy
