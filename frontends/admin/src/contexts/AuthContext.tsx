@@ -27,7 +27,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
 
-axios.defaults.baseURL = API_URL;
+// Don't set baseURL, use relative paths
+// axios.defaults.baseURL = API_URL;
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -45,7 +46,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchProfile = async () => {
     try {
-      const response = await axios.post('/api/nest/profile');
+      const response = await axios.post(`${API_URL}/api/nest/profile`);
       setUser(response.data.data);
     } catch (error) {
       localStorage.removeItem('token');
@@ -57,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
       const { token, refreshToken, user } = response.data.data;
       
       localStorage.setItem('token', token);
@@ -74,7 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const register = async (email: string, password: string, name: string, subdomain: string) => {
     try {
-      const response = await axios.post('/api/auth/register', {
+      const response = await axios.post(`${API_URL}/api/auth/register`, {
         email,
         password,
         name,
@@ -97,7 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await axios.post(`${API_URL}/api/auth/logout`);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -114,7 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) throw new Error('No refresh token');
 
-      const response = await axios.post('/api/auth/refresh', { refreshToken });
+      const response = await axios.post(`${API_URL}/api/auth/refresh`, { refreshToken });
       const { token } = response.data.data;
       
       localStorage.setItem('token', token);

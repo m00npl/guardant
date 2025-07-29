@@ -3,6 +3,8 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { ServiceModal } from '../components/ServiceModal';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
+
 interface Service {
   id: string;
   name: string;
@@ -27,7 +29,7 @@ export const ServicesPage: React.FC = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await axios.post('/api/services/list');
+      const response = await axios.post(`${API_URL}/api/services/list`);
       setServices(response.data.data);
     } catch (error) {
       toast.error('Failed to fetch services');
@@ -40,7 +42,7 @@ export const ServicesPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this service?')) return;
 
     try {
-      await axios.post('/api/services/delete', { serviceId });
+      await axios.post(`${API_URL}/api/services/delete`, { serviceId });
       toast.success('Service deleted successfully');
       fetchServices();
     } catch (error) {

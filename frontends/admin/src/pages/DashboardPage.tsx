@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
+
 interface DashboardStats {
   totalServices: number;
   activeServices: number;
@@ -23,7 +25,7 @@ export const DashboardPage: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.post('/api/dashboard/stats');
+      const response = await axios.post(`${API_URL}/api/dashboard/stats`);
       setStats(response.data.data);
     } catch (error) {
       console.error('Failed to fetch stats:', error);

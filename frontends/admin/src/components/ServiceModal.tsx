@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
+
 interface Service {
   id?: string;
   name: string;
@@ -38,13 +40,13 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose }) 
 
     try {
       if (service?.id) {
-        await axios.post('/api/services/update', {
+        await axios.post(`${API_URL}/api/services/update`, {
           serviceId: service.id,
           ...formData
         });
         toast.success('Service updated successfully');
       } else {
-        await axios.post('/api/services/create', formData);
+        await axios.post(`${API_URL}/api/services/create`, formData);
         toast.success('Service created successfully');
       }
       onClose();

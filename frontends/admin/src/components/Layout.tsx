@@ -53,11 +53,13 @@ export const Layout: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {user?.subscription.tier.toUpperCase()}
-                </span>
-              </div>
+              {user && (
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {user.subscription?.tier?.toUpperCase() || 'FREE'}
+                  </span>
+                </div>
+              )}
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
                   <span className="text-sm text-gray-700">{user?.email}</span>
