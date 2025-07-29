@@ -1168,8 +1168,9 @@ app.post('/api/admin/services/create', async (c) => {
   const requestLogger = c.get('logger');
   
   return tracing.traceBusinessEvent('service_creation', async (span) => {
+    const nestId = extractNestId(c);
+    
     try {
-      const nestId = extractNestId(c);
       const serviceData = await c.req.json();
 
       // Add tracing attributes
