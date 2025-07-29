@@ -25,5 +25,5 @@ EXPOSE 45678
 # Add environment to help with debugging
 ENV DOCKER=true
 
-# Run the application directly
-CMD ["bun", "src/index.ts"]
+# Run the application through server wrapper
+CMD ["bun", "server.ts"]

@@ -71,10 +71,11 @@ services:
       context: .
       dockerfile: services/api-admin/Dockerfile
     ports:
-      - "4040:3001"  # Use standard port
+      - "4040:3001"
     environment:
       - NODE_ENV=production
-      - PORT=3001  # Use standard port that Bun handles well
+      - PORT=3001
+      - HOSTNAME=0.0.0.0
       - BUN_CONFIG_NO_CLEAR_TERMINAL=1
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
