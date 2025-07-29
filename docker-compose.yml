@@ -1,14 +1,35 @@
 services:
+  # Main Nginx Proxy
+  nginx-proxy:
+    container_name: guardant-nginx-proxy
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - admin-frontend
+      - admin-api
+      - public-api
+      - prometheus
+      - grafana
+      - jaeger
+      - vault
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
   # Frontend Services
   admin-frontend:
     container_name: guardant-admin-frontend
     build:
       context: .
       dockerfile: frontends/admin/Dockerfile
-    ports:
-      - "3000:80"
+    expose:
+      - "80"
     environment:
-      - VITE_API_URL=http://admin-api:45678
+      - VITE_API_URL=/api/admin
     depends_on:
       - admin-api
     restart: unless-stopped
