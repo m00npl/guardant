@@ -25,7 +25,7 @@ RUN echo "Checking if index.ts exists:" && ls -la src/index.ts && \
     grep -n "/api/admin/services" src/index.ts | head -5 || echo "No admin endpoints found!"
 
 # Expose port
-EXPOSE 45678
+EXPOSE 3002
 
 # Add environment to help with debugging
 ENV DOCKER=true

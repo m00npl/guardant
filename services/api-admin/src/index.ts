@@ -2031,36 +2031,31 @@ async function startServer() {
       // If specific port fails, try using a random port as fallback
       const useRandomPort = process.env.USE_RANDOM_PORT === 'true';
       
-      // Try different configurations
+      // Force specific port configuration
+      const finalPort = parseInt(String(serverPort), 10);
+      console.log(`🎯 Forcing server to use port: ${finalPort}`);
+      
       let server;
-      let attempts = [
-        { port: serverPort, hostname: '0.0.0.0' },
-        { port: serverPort },
-      ];
-      
-      let lastError;
-      for (const config of attempts) {
-        try {
-          console.log(`🔧 Trying server config:`, config);
-          server = Bun.serve({
-            ...config,
-            fetch: app.fetch,
-            error(error) {
-              console.error('🚨 Request error:', error);
-              return new Response('Internal Server Error', { status: 500 });
-            },
-          });
-          console.log(`✅ Server started with config:`, config);
-          break;
-        } catch (error) {
-          console.error(`❌ Failed with config ${JSON.stringify(config)}:`, error.message);
-          lastError = error;
-        }
+      try {
+        server = Bun.serve({
+          port: finalPort,
+          hostname: '0.0.0.0',
+          fetch: app.fetch,
+          error(error) {
+            console.error('🚨 Request error:', error);
+            return new Response('Internal Server Error', { status: 500 });
+          },
+        });
+        console.log(`✅ Server started on port ${finalPort}`);
+      } catch (error) {
+        console.error(`❌ Failed to start on port ${finalPort}:`, error);
+        // Try alternative approach
+        server = Bun.serve({
+          port: finalPort,
+          fetch: app.fetch,
+        });
       }
       
-      if (!server) {
-        throw lastError || new Error('Failed to start server with any configuration');
-      }
       
       console.log(`✅ Server started successfully!`);
       console.log(`📡 Server details:`, {
