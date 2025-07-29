@@ -1,23 +1,89 @@
 #!/bin/bash
 
 # Deployment API client for guardant.me
-API_BASE="https://guardant.me/api/admin/deployment"
-TOKEN="${DEPLOYMENT_TOKEN:-your-deployment-token-123}"
+API_BASE="https://guardant.me/api/admin"
+DEPLOYMENT_TOKEN_FILE="$HOME/.guardant-deployment-token"
+
+# Function to get deployment token
+function get_deployment_token() {
+    # Check if we have a saved token
+    if [ -f "$DEPLOYMENT_TOKEN_FILE" ]; then
+        DEPLOYMENT_TOKEN=$(cat "$DEPLOYMENT_TOKEN_FILE")
+        return
+    fi
+    
+    # Otherwise, login and get a deployment token
+    echo "🔐 Please login to get deployment token..."
+    read -p "Email: " email
+    read -s -p "Password: " password
+    echo
+    
+    # Login
+    LOGIN_RESPONSE=$(curl -s -X POST "$API_BASE/auth/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"email\":\"$email\",\"password\":\"$password\"}")
+    
+    ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.tokens.accessToken')
+    
+    if [ "$ACCESS_TOKEN" == "null" ]; then
+        echo "❌ Login failed"
+        exit 1
+    fi
+    
+    # Get deployment token
+    TOKEN_RESPONSE=$(curl -s -X POST "$API_BASE/deployment/token" \
+        -H "Authorization: Bearer $ACCESS_TOKEN" \
+        -H "Content-Type: application/json")
+    
+    DEPLOYMENT_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.token')
+    
+    if [ "$DEPLOYMENT_TOKEN" == "null" ]; then
+        echo "❌ Failed to get deployment token"
+        exit 1
+    fi
+    
+    # Save token
+    echo "$DEPLOYMENT_TOKEN" > "$DEPLOYMENT_TOKEN_FILE"
+    chmod 600 "$DEPLOYMENT_TOKEN_FILE"
+    echo "✅ Deployment token saved"
+}
 
 function deploy_api() {
     local endpoint=$1
     local method=${2:-GET}
     local data=${3:-}
     
-    if [ -n "$data" ]; then
-        curl -s -X $method "$API_BASE/$endpoint" \
-            -H "X-Deployment-Token: $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$data" | jq .
-    else
-        curl -s -X $method "$API_BASE/$endpoint" \
-            -H "X-Deployment-Token: $TOKEN" | jq .
+    # Ensure we have a token
+    if [ -z "$DEPLOYMENT_TOKEN" ]; then
+        get_deployment_token
     fi
+    
+    if [ -n "$data" ]; then
+        response=$(curl -s -w "\n%{http_code}" -X $method "$API_BASE/deployment/$endpoint" \
+            -H "Authorization: Bearer $DEPLOYMENT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$data")
+    else
+        response=$(curl -s -w "\n%{http_code}" -X $method "$API_BASE/deployment/$endpoint" \
+            -H "Authorization: Bearer $DEPLOYMENT_TOKEN")
+    fi
+    
+    # Extract body and status code
+    body=$(echo "$response" | sed '$d')
+    status_code=$(echo "$response" | tail -1)
+    
+    # Check if token expired
+    if [ "$status_code" == "401" ]; then
+        echo "🔄 Token expired, getting new one..."
+        rm -f "$DEPLOYMENT_TOKEN_FILE"
+        DEPLOYMENT_TOKEN=""
+        get_deployment_token
+        # Retry the request
+        deploy_api "$@"
+        return
+    fi
+    
+    echo "$body" | jq .
 }
 
 case "$1" in
@@ -83,6 +149,12 @@ case "$1" in
         deploy_api "logs/monitoring-worker-1?tail=50"
         ;;
     
+    logout)
+        echo "🔐 Removing saved deployment token..."
+        rm -f "$DEPLOYMENT_TOKEN_FILE"
+        echo "✅ Logged out"
+        ;;
+    
     *)
         echo "GuardAnt Deployment API Client"
         echo ""
@@ -97,6 +169,7 @@ case "$1" in
         echo "  exec '<command>'               - Execute allowed command"
         echo "  rabbitmq-logs                  - Show RabbitMQ connection logs"
         echo "  worker-logs                    - Show worker logs"
+        echo "  logout                         - Remove saved deployment token"
         echo ""
         echo "Examples:"
         echo "  $0 logs admin-api 100"
@@ -104,5 +177,7 @@ case "$1" in
         echo "  $0 restart admin-api"
         echo "  $0 build admin-api"
         echo "  $0 exec 'docker ps'"
+        echo ""
+        echo "First use will prompt for login credentials."
         ;;
 esac

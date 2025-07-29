@@ -2,22 +2,116 @@ import { Hono } from 'hono';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { createLogger } from '../../../shared/logger';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const execAsync = promisify(exec);
 const logger = createLogger('deployment-api');
 
 export const deploymentApi = new Hono();
 
+// Generate secure deployment token
+const DEPLOYMENT_SECRET = process.env.DEPLOYMENT_SECRET || crypto.randomBytes(32).toString('hex');
+
+// IP whitelist
+const ALLOWED_IPS = (process.env.DEPLOYMENT_ALLOWED_IPS || '').split(',').filter(ip => ip.trim());
+
+// Rate limiting
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+
 // Middleware to check if request is from authorized source
 deploymentApi.use('/*', async (c, next) => {
-  const deploymentToken = c.req.header('X-Deployment-Token');
-  
-  // Simple token check - in production use proper auth
-  if (deploymentToken !== process.env.DEPLOYMENT_TOKEN && deploymentToken !== 'your-deployment-token-123') {
-    return c.json({ error: 'Unauthorized' }, 401);
+  // Skip auth for token endpoint
+  if (c.req.path === '/token') {
+    return await next();
   }
   
-  await next();
+  try {
+    // Check IP whitelist if configured
+    if (ALLOWED_IPS.length > 0) {
+      const clientIp = c.req.header('X-Real-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+      if (!ALLOWED_IPS.includes(clientIp)) {
+        logger.warn('Deployment API access from unauthorized IP', { ip: clientIp });
+        return c.json({ error: 'Access denied' }, 403);
+      }
+    }
+    
+    // Check for JWT token
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: 'Missing authorization header' }, 401);
+    }
+    
+    const token = authHeader.substring(7);
+    
+    // Verify JWT token
+    const decoded = jwt.verify(token, DEPLOYMENT_SECRET) as any;
+    
+    // Check if token has deployment permissions
+    if (!decoded.permissions || !decoded.permissions.includes('deployment')) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+    
+    // Check if token is not expired
+    if (decoded.exp && decoded.exp < Date.now() / 1000) {
+      return c.json({ error: 'Token expired' }, 401);
+    }
+    
+    // Store user info in context
+    c.set('deploymentUser', decoded);
+    
+    // Rate limiting
+    const userId = decoded.userId;
+    const now = Date.now();
+    const userRate = requestCounts.get(userId) || { count: 0, resetTime: now + 60000 };
+    
+    // Reset if time window passed
+    if (now > userRate.resetTime) {
+      userRate.count = 0;
+      userRate.resetTime = now + 60000; // 1 minute window
+    }
+    
+    // Check rate limit (30 requests per minute)
+    if (userRate.count >= 30) {
+      return c.json({ error: 'Rate limit exceeded' }, 429);
+    }
+    
+    userRate.count++;
+    requestCounts.set(userId, userRate);
+    
+    await next();
+  } catch (error) {
+    logger.error('Deployment auth failed', error);
+    return c.json({ error: 'Invalid token' }, 401);
+  }
+});
+
+// Endpoint to generate deployment token (requires admin auth)
+deploymentApi.post('/token', async (c) => {
+  // This endpoint should be protected by regular admin auth middleware
+  // For now, check if request comes from admin user
+  const adminUser = c.get('user');
+  if (!adminUser || adminUser.role !== 'admin') {
+    return c.json({ error: 'Admin access required' }, 403);
+  }
+  
+  // Generate deployment token
+  const token = jwt.sign(
+    {
+      userId: adminUser.id,
+      email: adminUser.email,
+      permissions: ['deployment'],
+      issuedAt: Date.now(),
+    },
+    DEPLOYMENT_SECRET,
+    { expiresIn: '24h' }
+  );
+  
+  return c.json({
+    success: true,
+    token,
+    expiresIn: '24h',
+  });
 });
 
 // Get logs from a specific service
@@ -25,6 +119,15 @@ deploymentApi.get('/logs/:service', async (c) => {
   const service = c.req.param('service');
   const tail = c.req.query('tail') || '50';
   const grep = c.req.query('grep') || '';
+  const user = c.get('deploymentUser');
+  
+  // Log access
+  logger.info('Deployment API: logs access', {
+    user: user.email,
+    service,
+    tail,
+    grep,
+  });
   
   try {
     let command = `docker logs guardant-${service} --tail ${tail}`;
