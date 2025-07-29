@@ -75,10 +75,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchProfile = async () => {
     try {
       const response = await axios.post(`${API_URL}/nest/profile`);
-      setUser(response.data.data);
+      // The response contains the nest data, but we need to get user data
+      // The user data should be already available from login
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      if (userData && userData.id) {
+        setUser(userData);
+      }
     } catch (error) {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userData');
     } finally {
       setLoading(false);
     }
@@ -87,12 +93,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     try {
       const response = await axios.post(`${API_URL}/auth/login`, { email, password });
-      const { token, refreshToken, user } = response.data.data;
+      const { tokens, user, nest } = response.data.data;
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('token', tokens.accessToken);
+      localStorage.setItem('refreshToken', tokens.refreshToken);
       
-      setUser(user);
+      // Store user data with nest information
+      const userData = {
+        ...user,
+        subdomain: nest.subdomain,
+        name: nest.name,
+        subscription: nest.subscription
+      };
+      localStorage.setItem('userData', JSON.stringify(userData));
+      
+      setUser(userData);
       toast.success('Welcome back!');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Login failed');
@@ -109,12 +124,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         subdomain
       });
       
-      const { token, refreshToken, user } = response.data.data;
+      const { tokens, user, nest } = response.data.data;
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('token', tokens.accessToken);
+      localStorage.setItem('refreshToken', tokens.refreshToken);
       
-      setUser(user);
+      // Store user data with nest information
+      const userData = {
+        ...user,
+        subdomain: nest.subdomain,
+        name: nest.name,
+        subscription: nest.subscription
+      };
+      localStorage.setItem('userData', JSON.stringify(userData));
+      
+      setUser(userData);
       toast.success('Account created successfully!');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Registration failed');
@@ -130,6 +154,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userData');
       setUser(null);
       toast.success('Logged out successfully');
     }
