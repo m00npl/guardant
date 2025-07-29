@@ -98,14 +98,28 @@ import type { WorkerAntConfig } from "./worker-config";
 import { WORKER_ANT_PRESETS } from "./worker-config";
 import { locationDetector } from "./worker-ant-location";
 
-// Configuration from environment
-const config = {
-  redis: process.env.REDIS_URL ? process.env.REDIS_URL : {
+// Parse Redis URL if provided
+function getRedisConfig() {
+  if (process.env.REDIS_URL) {
+    const url = new URL(process.env.REDIS_URL);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port) || 6379,
+      password: url.password || undefined,
+      maxRetriesPerRequest: null,
+    };
+  }
+  return {
     host: process.env.REDIS_HOST || "localhost",
     port: parseInt(process.env.REDIS_PORT || "6379"),
     password: process.env.REDIS_PASSWORD,
     maxRetriesPerRequest: null,
-  },
+  };
+}
+
+// Configuration from environment
+const config = {
+  redis: getRedisConfig(),
   workerAntId:
     process.env.WORKER_ANT_ID ||
     `ant-${process.env.HOSTNAME || "local"}-${Date.now()}`,
