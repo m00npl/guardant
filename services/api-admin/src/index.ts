@@ -48,7 +48,7 @@ import {
   type NestUser,
   type UserRole 
 } from '/app/packages/auth-system/src/index';
-import { platformRoutes } from './platform-routes';
+import { platformRoutes } from './platform-routes-simple';
 import {
   PaymentManager,
   RedisPaymentStorage,
@@ -1912,6 +1912,7 @@ async function startServer() {
       c.set('storage', hybridStorage);
       c.set('authManager', authManager);
       c.set('paymentManager', paymentManager);
+      c.set('redis', redis);
       return next();
     });
     app.route('/api/platform', platformRoutes);
