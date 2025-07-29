@@ -10,17 +10,11 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files first
-COPY package.json bun.lockb ./
-COPY services/api-admin/package.json ./services/api-admin/
-COPY packages/*/package.json ./packages/*/
-COPY shared/package.json ./shared/
+# Copy everything at once
+COPY . .
 
 # Install all dependencies
 RUN bun install
-
-# Then copy all source code
-COPY . .
 
 # Set working directory to service
 WORKDIR /app/services/api-admin
