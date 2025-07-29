@@ -669,12 +669,39 @@ const extractNestId = (c: any): string => {
   }
 };
 
-// Health check endpoints
-const healthEndpoints = createHealthEndpoints(healthChecker);
-app.get('/health', healthEndpoints.basic);
-app.get('/health/detailed', healthEndpoints.detailed);
-app.get('/health/ready', healthEndpoints.ready);
-app.get('/health/live', healthEndpoints.live);
+// Health endpoints placeholder - will be initialized later
+let healthEndpoints: any = {
+  basic: (c: any) => c.text('OK', 200),
+  detailed: (c: any) => c.json({ status: 'initializing' }, 503),
+  ready: (c: any) => c.text('Not Ready', 503),
+  live: (c: any) => c.text('OK', 200)
+};
+
+// Health check endpoints - with fallback for when healthChecker is not yet initialized
+app.get('/health', (c) => {
+  if (!healthChecker) {
+    return c.text('OK', 200);
+  }
+  return healthEndpoints.basic(c);
+});
+app.get('/health/detailed', (c) => {
+  if (!healthChecker) {
+    return c.json({ status: 'initializing' }, 503);
+  }
+  return healthEndpoints.detailed(c);
+});
+app.get('/health/ready', (c) => {
+  if (!healthChecker) {
+    return c.text('Not Ready', 503);
+  }
+  return healthEndpoints.ready(c);
+});
+app.get('/health/live', (c) => {
+  if (!healthChecker) {
+    return c.text('OK', 200);
+  }
+  return healthEndpoints.live(c);
+});
 
 // Metrics endpoint
 app.get('/metrics', (c) => {
@@ -1784,6 +1811,9 @@ async function startServer() {
     // Initialize health checker and metrics
     healthChecker = new HealthChecker('api-admin', '1.0.0'); 
     metricsCollector = getMetricsCollector('guardant_admin_api');
+    
+    // Update health endpoints with actual implementation
+    healthEndpoints = createHealthEndpoints(healthChecker);
     
     // Initialize error handling systems
     errorManager = new ErrorManager('api-admin', tracing);
