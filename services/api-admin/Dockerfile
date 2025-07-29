@@ -3,11 +3,16 @@ FROM oven/bun:1
 
 WORKDIR /app
 
-# Install build dependencies for native modules
+# Install build dependencies for native modules and diagnostic tools
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    procps \
+    net-tools \
+    lsof \
+    netcat-openbsd \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy everything at once

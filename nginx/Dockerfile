@@ -1,5 +1,13 @@
 FROM nginx:alpine
 
+# Install diagnostic tools
+RUN apk add --no-cache \
+    curl \
+    netcat-openbsd \
+    procps \
+    net-tools \
+    bind-tools
+
 # Remove default nginx config
 RUN rm -f /etc/nginx/conf.d/default.conf
 
