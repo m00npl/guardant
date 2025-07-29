@@ -1065,8 +1065,7 @@ app.post('/api/subscription/plans', async (c) => {
   }
 });
 
-// Protected routes
-app.use('/api/*', authMiddleware);
+// Protected routes - middleware will be applied after initialization
 
 // Nest management
 app.post('/api/nest/profile', async (c) => {
@@ -1901,6 +1900,10 @@ async function startServer() {
       component: 'health',
       checks: Array.from(healthChecker['checks'].keys())
     });
+    
+    // Apply authentication middleware to all /api/* routes
+    // This must be done after authManager is initialized
+    app.use('/api/*', authMiddleware);
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);
