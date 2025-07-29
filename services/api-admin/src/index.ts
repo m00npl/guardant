@@ -563,10 +563,8 @@ let ethereumCircuitBreaker: any;
 // Initialize Hono app
 const app = new Hono();
 
-// Function to setup routes - will be called after services are initialized
-function setupRoutes() {
-  console.log('📍 Setting up routes with initialized services');
-}
+// Routes will be added dynamically after initialization
+let routesInitialized = false;
 // app.use('*', createHealthMiddleware(healthChecker));
 // app.use('*', createMetricsMiddleware(metricsCollector));
 // app.use('*', createTracingMiddleware(tracing));
@@ -1103,6 +1101,11 @@ app.post('/api/admin/nest/profile', async (c) => {
 app.post('/api/admin/services/list', async (c) => {
   try {
     const nestId = extractNestId(c);
+    if (!nestId) {
+      console.log('❌ No nestId found - user not authenticated');
+      return c.json<ApiResponse>({ success: false, error: 'Authentication required' }, 401);
+    }
+    
     const services = await hybridStorage.getServicesByNest(nestId);
     
     return c.json<ApiResponse>({
