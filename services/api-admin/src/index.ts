@@ -503,7 +503,10 @@ const rabbitmqService = {
   },
 
   async sendWorkerCommand(command: string, data: any) {
+    console.log('📤 Attempting to send worker command:', { command, serviceId: data.serviceId });
+    
     if (!rabbitmqChannel) {
+      console.error('❌ RabbitMQ channel not available');
       logger.warn('RabbitMQ not connected, skipping worker command', { 
         component: 'rabbitmq',
         command 
@@ -518,6 +521,8 @@ const rabbitmqService = {
       Buffer.from(message),
       { persistent: true }
     );
+    
+    console.log('✅ Worker command sent successfully:', { command, exchange: rabbitmqConfig.workerCommandsExchange });
 
     // Record metrics
     metricsCollector.recordRabbitMQMessage(rabbitmqConfig.workerCommandsExchange, 'publish');
@@ -1951,6 +1956,11 @@ async function startServer() {
       workerResultsQueue: 'worker_results',
       workerCommandsExchange: 'worker_commands',
     };
+    console.log('📡 RabbitMQ configuration:', {
+      url: rabbitmqConfig.url,
+      exchange: rabbitmqConfig.workerCommandsExchange,
+      queue: rabbitmqConfig.workerResultsQueue
+    });
     
     // Initialize Golem L3 storage
     if (config.get('golemEnabled')) {
@@ -1964,9 +1974,11 @@ async function startServer() {
     
     // Connect to RabbitMQ (optional)
     try {
+      console.log('🔄 Attempting to connect to RabbitMQ...');
       await rabbitmqService.connectToRabbitMQ();
       console.log('✅ RabbitMQ worker communication initialized');
     } catch (rabbitmqError) {
+      console.error('❌ RabbitMQ connection failed:', rabbitmqError);
       console.warn('⚠️ RabbitMQ connection failed, continuing without worker communication:', rabbitmqError.message);
     }
 
