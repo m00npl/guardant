@@ -7,8 +7,6 @@ services:
       dockerfile: nginx/Dockerfile
     ports:
       - "8080:80"
-    volumes:
-      - admin-api-port:/tmp
     depends_on:
       - admin-frontend
       - admin-api
@@ -73,10 +71,10 @@ services:
       context: .
       dockerfile: services/api-admin/Dockerfile
     ports:
-      - "4040:45678"  # Use high port number to avoid conflicts
+      - "4040:3001"  # Use standard port
     environment:
       - NODE_ENV=production
-      - PORT=45678  # High port number unlikely to be in use
+      - PORT=3001  # Use standard port that Bun handles well
       - BUN_CONFIG_NO_CLEAR_TERMINAL=1
       - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
       - REDIS_URL=redis://redis:6379
@@ -88,7 +86,6 @@ services:
       - GOLEM_PRIVATE_KEY_PATH=/config/golembase/private.key
     volumes:
       - golem-config:/config/golembase
-      - admin-api-port:/tmp
     depends_on:
       postgres:
         condition: service_healthy
@@ -302,7 +299,6 @@ volumes:
   golem-config:
   vault-data:
   vault-logs:
-  admin-api-port:
 
 networks:
   guardant-network:

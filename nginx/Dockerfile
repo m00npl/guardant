@@ -16,8 +16,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 EXPOSE 80
 
-# Copy entrypoint script
-COPY nginx/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-CMD ["/entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]
