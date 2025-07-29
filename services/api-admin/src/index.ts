@@ -563,7 +563,10 @@ let ethereumCircuitBreaker: any;
 // Initialize Hono app
 const app = new Hono();
 
-// TODO: Middleware will be added after initialization
+// Function to setup routes - will be called after services are initialized
+function setupRoutes() {
+  console.log('📍 Setting up routes with initialized services');
+}
 // app.use('*', createHealthMiddleware(healthChecker));
 // app.use('*', createMetricsMiddleware(metricsCollector));
 // app.use('*', createTracingMiddleware(tracing));
@@ -662,10 +665,16 @@ const availableRegions: MonitoringRegion[] = [
 
 // Helper functions
 const extractNestId = (c: any): string => {
-  const user = getAuthUser(c);
-  console.log('🔍 extractNestId - user:', user);
-  console.log('🔍 extractNestId - nestId:', user?.nestId);
-  return user?.nestId || '';
+  try {
+    const user = getAuthUser(c);
+    console.log('🔍 extractNestId - user:', user);
+    console.log('🔍 extractNestId - context keys:', Object.keys(c.var || {}));
+    console.log('🔍 extractNestId - nestId:', user?.nestId);
+    return user?.nestId || '';
+  } catch (error) {
+    console.error('🔥 extractNestId error:', error);
+    return '';
+  }
 };
 
 // Health check endpoints
@@ -1941,13 +1950,22 @@ async function startServer() {
       }
       
       console.log('🔒 Applying auth middleware');
-      const result = await authMiddleware(c, next);
-      console.log('🔍 After auth - user in context:', c.get('user'));
-      return result;
+      console.log('🔍 AuthManager exists?', !!authManager);
+      console.log('🔍 AuthMiddleware exists?', !!authMiddleware);
+      
+      if (!authMiddleware) {
+        console.error('❌ authMiddleware not initialized!');
+        return c.json({ success: false, error: 'Auth system not ready' }, 503);
+      }
+      
+      return authMiddleware(c, next);
     });
     
     // Mount platform admin routes
     app.route('/api/admin/platform', platformRoutes);
+    
+    // Call setupRoutes after all services are initialized
+    setupRoutes();
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);
