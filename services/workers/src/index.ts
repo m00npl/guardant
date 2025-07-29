@@ -100,21 +100,31 @@ import { locationDetector } from "./worker-ant-location";
 
 // Parse Redis URL if provided
 function getRedisConfig() {
+  console.log('🔍 Redis configuration:');
+  console.log('REDIS_URL:', process.env.REDIS_URL);
+  console.log('REDIS_HOST:', process.env.REDIS_HOST);
+  console.log('REDIS_PORT:', process.env.REDIS_PORT);
+  
   if (process.env.REDIS_URL) {
     const url = new URL(process.env.REDIS_URL);
-    return {
+    const config = {
       host: url.hostname,
       port: parseInt(url.port) || 6379,
       password: url.password || undefined,
       maxRetriesPerRequest: null,
     };
+    console.log('📍 Parsed Redis config:', config);
+    return config;
   }
-  return {
+  
+  const config = {
     host: process.env.REDIS_HOST || "localhost",
     port: parseInt(process.env.REDIS_PORT || "6379"),
     password: process.env.REDIS_PASSWORD,
     maxRetriesPerRequest: null,
   };
+  console.log('📍 Default Redis config:', config);
+  return config;
 }
 
 // Configuration from environment
