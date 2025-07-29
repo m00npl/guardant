@@ -576,7 +576,8 @@ let routesInitialized = false;
 // TODO: Error handling middleware will be added after initialization
 // app.use('*', createErrorMiddleware(errorManager));
 
-// Add request logging middleware
+// Request logging middleware will be added in startServer()
+/*
 app.use('*', (c, next) => {
   const startTime = performance.now();
   const requestId = c.req.header('x-request-id') || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -623,6 +624,7 @@ app.use('*', (c, next) => {
     throw error;
   });
 });
+*/
 
 // Authentication and payment systems - will be initialized after config loads
 let authConfig: AuthConfig;
@@ -633,8 +635,7 @@ let paymentStorage: RedisPaymentStorage;
 let paymentManager: PaymentManager;
 let walletConnector: WalletConnector;
 
-// Middleware
-app.use('*', cors());
+// Middleware will be added in startServer()
 
 // Authentication middleware for protected routes - will be initialized after authManager
 let authMiddleware: any;
@@ -677,106 +678,119 @@ let healthEndpoints: any = {
   live: (c: any) => c.text('OK', 200)
 };
 
-// Health check endpoints - with fallback for when healthChecker is not yet initialized
+// Move health check endpoints to registerApiEndpoints function
+
+// Placeholder for moved endpoints
+/*
 app.get('/health', (c) => {
-  if (!healthChecker) {
-    return c.text('OK', 200);
-  }
-  return healthEndpoints.basic(c);
-});
-app.get('/health/detailed', (c) => {
-  if (!healthChecker) {
-    return c.json({ status: 'initializing' }, 503);
-  }
-  return healthEndpoints.detailed(c);
-});
-app.get('/health/ready', (c) => {
-  if (!healthChecker) {
-    return c.text('Not Ready', 503);
-  }
-  return healthEndpoints.ready(c);
-});
-app.get('/health/live', (c) => {
-  if (!healthChecker) {
-    return c.text('OK', 200);
-  }
-  return healthEndpoints.live(c);
-});
+*/
+// Endpoints moved to registerApiEndpoints function
 
-// Metrics endpoint
-app.get('/metrics', (c) => {
-  const metrics = metricsCollector.generatePrometheusMetrics();
-  return c.text(metrics, 200, {
-    'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
-  });
-});
-
-// Metrics JSON endpoint (for debugging)
-app.get('/metrics/json', (c) => {
-  const metrics = metricsCollector.getMetricsJSON();
-  return c.json(metrics);
-});
-
-// Error handling system status
-app.get('/system/error-status', (c) => {
-  return c.json({
-    circuitBreakers: circuitBreakerManager.getAllMetrics(),
-    errorCounts: {
-      redis: errorManager.getErrorCount('REDIS_ERROR'),
-      rabbitmq: errorManager.getErrorCount('RABBITMQ_ERROR'),
-      database: errorManager.getErrorCount('DATABASE_ERROR'),
-      validation: errorManager.getErrorCount('VALIDATION_ERROR'),
-    },
-    dlqStats: dlqManager.getAllStats(),
-  });
-});
-
-// Circuit breaker control endpoints
-app.post('/system/circuit-breaker/:name/reset', (c) => {
-  const name = c.req.param('name');
-  const breaker = circuitBreakerManager.getCircuitBreaker(name);
+// Function to register all API endpoints
+// This is called from startServer() after middleware is initialized
+function registerApiEndpoints(app: any) {
+  console.log('📝 Registering API endpoints...');
   
-  if (!breaker) {
-    return c.json({ error: 'Circuit breaker not found' }, 404);
-  }
-  
-  breaker.reset();
-  return c.json({ success: true, message: `Circuit breaker ${name} reset` });
-});
-
-app.post('/system/circuit-breaker/:name/force-state', async (c) => {
-  const name = c.req.param('name');
-  const { state, reason } = await c.req.json();
-  const breaker = circuitBreakerManager.getCircuitBreaker(name);
-  
-  if (!breaker) {
-    return c.json({ error: 'Circuit breaker not found' }, 404);
-  }
-  
-  breaker.forceState(state, reason || 'manual');
-  return c.json({ success: true, message: `Circuit breaker ${name} set to ${state}` });
-});
-
-// Root endpoint for debugging
-app.get('/', (c) => {
-  return c.json<ApiResponse>({
-    success: true,
-    data: {
-      service: 'GuardAnt Admin API',
-      version: '1.0.0',
-      endpoints: {
-        health: 'GET /health',
-        auth: 'POST /api/admin/auth/*',
-        services: 'POST /api/admin/services/*',
-        subscription: 'POST /api/admin/subscription/*',
-        platform: 'POST /api/admin/platform/*'
-      }
+  // Health check endpoints - with fallback for when healthChecker is not yet initialized
+  app.get('/health', (c) => {
+    if (!healthChecker) {
+      return c.text('OK', 200);
     }
+    return healthEndpoints.basic(c);
   });
-});
+  app.get('/health/detailed', (c) => {
+    if (!healthChecker) {
+      return c.json({ status: 'initializing' }, 503);
+    }
+    return healthEndpoints.detailed(c);
+  });
+  app.get('/health/ready', (c) => {
+    if (!healthChecker) {
+      return c.text('Not Ready', 503);
+    }
+    return healthEndpoints.ready(c);
+  });
+  app.get('/health/live', (c) => {
+    if (!healthChecker) {
+      return c.text('OK', 200);
+    }
+    return healthEndpoints.live(c);
+  });
 
-// Authentication routes
-app.post('/api/admin/auth/register', async (c) => {
+  // Metrics endpoint
+  app.get('/metrics', (c) => {
+    const metrics = metricsCollector.generatePrometheusMetrics();
+    return c.text(metrics, 200, {
+      'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
+    });
+  });
+
+  // Metrics JSON endpoint (for debugging)
+  app.get('/metrics/json', (c) => {
+    const metrics = metricsCollector.getMetricsJSON();
+    return c.json(metrics);
+  });
+
+  // Error handling system status
+  app.get('/system/error-status', (c) => {
+    return c.json({
+      circuitBreakers: circuitBreakerManager.getAllMetrics(),
+      errorCounts: {
+        redis: errorManager.getErrorCount('REDIS_ERROR'),
+        rabbitmq: errorManager.getErrorCount('RABBITMQ_ERROR'),
+        database: errorManager.getErrorCount('DATABASE_ERROR'),
+        validation: errorManager.getErrorCount('VALIDATION_ERROR'),
+      },
+      dlqStats: dlqManager.getAllStats(),
+    });
+  });
+
+  // Circuit breaker control endpoints
+  app.post('/system/circuit-breaker/:name/reset', (c) => {
+    const name = c.req.param('name');
+    const breaker = circuitBreakerManager.getCircuitBreaker(name);
+    
+    if (!breaker) {
+      return c.json({ error: 'Circuit breaker not found' }, 404);
+    }
+    
+    breaker.reset();
+    return c.json({ success: true, message: `Circuit breaker ${name} reset` });
+  });
+
+  app.post('/system/circuit-breaker/:name/force-state', async (c) => {
+    const name = c.req.param('name');
+    const { state, reason } = await c.req.json();
+    const breaker = circuitBreakerManager.getCircuitBreaker(name);
+    
+    if (!breaker) {
+      return c.json({ error: 'Circuit breaker not found' }, 404);
+    }
+    
+    breaker.forceState(state, reason || 'manual');
+    return c.json({ success: true, message: `Circuit breaker ${name} set to ${state}` });
+  });
+
+  // Root endpoint for debugging
+  app.get('/', (c) => {
+    return c.json<ApiResponse>({
+      success: true,
+      data: {
+        service: 'GuardAnt Admin API',
+        version: '1.0.0',
+        endpoints: {
+          health: 'GET /health',
+          auth: 'POST /api/admin/auth/*',
+          services: 'POST /api/admin/services/*',
+          subscription: 'POST /api/admin/subscription/*',
+          platform: 'POST /api/admin/platform/*'
+        }
+      }
+    });
+  });
+  
+  // Authentication routes
+  app.post('/api/admin/auth/register', async (c) => {
   const requestLogger = c.get('logger');
   
   return tracing.traceBusinessEvent('user_registration', async (span) => {
@@ -1732,6 +1746,8 @@ app.post('/api/admin/worker-ants/status', async (c) => {
   });
 });
 
+} // End of registerApiEndpoints function
+
 // Track if startServer was already called
 let startServerCalled = false;
 
@@ -1960,6 +1976,57 @@ async function startServer() {
       checks: Array.from(healthChecker['checks'].keys())
     });
     
+    // Apply CORS middleware first
+    app.use('*', cors());
+    
+    // Add request logging middleware
+    app.use('*', (c, next) => {
+      const startTime = performance.now();
+      const requestId = c.req.header('x-request-id') || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create request-scoped logger
+      const requestLogger = logger.child({
+        requestId,
+        userAgent: c.req.header('user-agent'),
+        ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
+      });
+
+      // Log request start
+      requestLogger.info('Request started', {
+        method: c.req.method,
+        path: c.req.path,
+        query: c.req.query(),
+      });
+
+      // Store logger and request ID in context
+      c.set('logger', requestLogger);
+      c.set('requestId', requestId);
+      c.res.headers.set('x-request-id', requestId);
+
+      return next().then(() => {
+        const duration = performance.now() - startTime;
+        
+        requestLogger.httpRequest(
+          c.req.method,
+          c.req.path,
+          c.res.status,
+          duration,
+          { requestId }
+        );
+      }).catch((error) => {
+        const duration = performance.now() - startTime;
+        
+        requestLogger.error('Request failed', error, {
+          requestId,
+          method: c.req.method,
+          path: c.req.path,
+          duration,
+        });
+
+        throw error;
+      });
+    });
+    
     // Set global context for all routes
     app.use('*', (c, next) => {
       c.set('storage', hybridStorage);
@@ -2005,6 +2072,9 @@ async function startServer() {
       
       return result;
     });
+    
+    // Register all API endpoints after middleware is set up
+    registerApiEndpoints(app);
     
     // Mount platform admin routes
     app.route('/api/admin/platform', platformRoutes);
