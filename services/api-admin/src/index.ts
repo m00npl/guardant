@@ -631,6 +631,16 @@ let walletConnector: WalletConnector;
 // Middleware
 app.use('*', cors());
 
+// Global middleware to ensure context is available
+app.use('*', async (c, next) => {
+  // Initialize empty context
+  c.set('storage', null);
+  c.set('authManager', null);
+  c.set('paymentManager', null);
+  c.set('redis', null);
+  await next();
+});
+
 // Authentication middleware for protected routes - will be initialized after authManager
 let authMiddleware: any;
 let nestOwnershipMiddleware: any;
@@ -1903,6 +1913,15 @@ async function startServer() {
       checks: Array.from(healthChecker['checks'].keys())
     });
     
+    // Set global context for all routes
+    app.use('*', (c, next) => {
+      c.set('storage', hybridStorage);
+      c.set('authManager', authManager);
+      c.set('paymentManager', paymentManager);
+      c.set('redis', redis);
+      return next();
+    });
+    
     // Apply authentication middleware to all /api/admin/* routes except auth endpoints
     // This must be done after authManager is initialized
     app.use('/api/admin/*', (c, next) => {
@@ -1919,14 +1938,6 @@ async function startServer() {
     });
     
     // Mount platform admin routes
-    app.use('/api/admin/platform/*', (c, next) => {
-      // Pass required services to platform routes
-      c.set('storage', hybridStorage);
-      c.set('authManager', authManager);
-      c.set('paymentManager', paymentManager);
-      c.set('redis', redis);
-      return next();
-    });
     app.route('/api/admin/platform', platformRoutes);
     
     console.log(`🚀 Admin API starting on port ${port}...`);
