@@ -726,16 +726,17 @@ app.get('/', (c) => {
       version: '1.0.0',
       endpoints: {
         health: 'GET /health',
-        auth: 'POST /api/auth/*',
-        services: 'POST /api/services/*',
-        subscription: 'POST /api/subscription/*'
+        auth: 'POST /api/admin/auth/*',
+        services: 'POST /api/admin/services/*',
+        subscription: 'POST /api/admin/subscription/*',
+        platform: 'POST /api/admin/platform/*'
       }
     }
   });
 });
 
 // Authentication routes
-app.post('/api/auth/register', async (c) => {
+app.post('/api/admin/auth/register', async (c) => {
   const requestLogger = c.get('logger');
   
   return tracing.traceBusinessEvent('user_registration', async (span) => {
@@ -918,7 +919,7 @@ app.post('/api/auth/register', async (c) => {
   });
 });
 
-app.post('/api/auth/login', async (c) => {
+app.post('/api/admin/auth/login', async (c) => {
   const requestLogger = c.get('logger');
   
   return tracing.traceBusinessEvent('user_login', async (span) => {
@@ -1001,7 +1002,7 @@ app.post('/api/auth/login', async (c) => {
 });
 
 // Token refresh endpoint
-app.post('/api/auth/refresh', async (c) => {
+app.post('/api/admin/auth/refresh', async (c) => {
   try {
     const body = await c.req.json();
     const { refreshToken } = body;
@@ -1026,7 +1027,7 @@ app.post('/api/auth/refresh', async (c) => {
 });
 
 // Logout endpoint
-app.post('/api/auth/logout', authMiddleware, async (c) => {
+app.post('/api/admin/auth/logout', authMiddleware, async (c) => {
   try {
     const user = getAuthUser(c);
     if (!user) {
@@ -1046,7 +1047,7 @@ app.post('/api/auth/logout', authMiddleware, async (c) => {
 
 // Public routes (before JWT middleware)
 // Regions endpoint should be public for frontend
-app.post('/api/regions/list', async (c) => {
+app.post('/api/admin/regions/list', async (c) => {
   return c.json<ApiResponse>({
     success: true,
     data: availableRegions
@@ -1054,7 +1055,7 @@ app.post('/api/regions/list', async (c) => {
 });
 
 // Subscription plans endpoint (public)
-app.post('/api/subscription/plans', async (c) => {
+app.post('/api/admin/subscription/plans', async (c) => {
   try {
     const plans = getAllPlans();
     return c.json<ApiResponse>({
@@ -1069,7 +1070,7 @@ app.post('/api/subscription/plans', async (c) => {
 // Protected routes - middleware will be applied after initialization
 
 // Nest management
-app.post('/api/nest/profile', async (c) => {
+app.post('/api/admin/nest/profile', async (c) => {
   try {
     const nestId = extractNestId(c);
     const nest = await hybridStorage.getNest(nestId);
@@ -1088,7 +1089,7 @@ app.post('/api/nest/profile', async (c) => {
 });
 
 // Service management routes
-app.post('/api/services/list', async (c) => {
+app.post('/api/admin/services/list', async (c) => {
   try {
     const nestId = extractNestId(c);
     const services = await hybridStorage.getServicesByNest(nestId);
@@ -1102,7 +1103,7 @@ app.post('/api/services/list', async (c) => {
   }
 });
 
-app.post('/api/services/create', async (c) => {
+app.post('/api/admin/services/create', async (c) => {
   const requestLogger = c.get('logger');
   
   return tracing.traceBusinessEvent('service_creation', async (span) => {
@@ -1268,7 +1269,7 @@ app.post('/api/services/create', async (c) => {
   });
 });
 
-app.post('/api/services/update', async (c) => {
+app.post('/api/admin/services/update', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1302,7 +1303,7 @@ app.post('/api/services/update', async (c) => {
   }
 });
 
-app.post('/api/services/delete', async (c) => {
+app.post('/api/admin/services/delete', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1341,7 +1342,7 @@ app.post('/api/services/delete', async (c) => {
 // Regions endpoint moved to public section above
 
 // Subscription management (protected routes)
-app.post('/api/subscription/create', async (c) => {
+app.post('/api/admin/subscription/create', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1372,7 +1373,7 @@ app.post('/api/subscription/create', async (c) => {
   }
 });
 
-app.post('/api/subscription/status', async (c) => {
+app.post('/api/admin/subscription/status', async (c) => {
   try {
     const nestId = extractNestId(c);
     const status = await paymentManager.getSubscriptionStatus(nestId);
@@ -1393,7 +1394,7 @@ app.post('/api/subscription/status', async (c) => {
   }
 });
 
-app.post('/api/subscription/upgrade', async (c) => {
+app.post('/api/admin/subscription/upgrade', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1423,7 +1424,7 @@ app.post('/api/subscription/upgrade', async (c) => {
   }
 });
 
-app.post('/api/subscription/cancel', async (c) => {
+app.post('/api/admin/subscription/cancel', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1447,7 +1448,7 @@ app.post('/api/subscription/cancel', async (c) => {
   }
 });
 
-app.post('/api/subscription/billing', async (c) => {
+app.post('/api/admin/subscription/billing', async (c) => {
   try {
     const nestId = extractNestId(c);
     const result = await paymentManager.processUsageBilling(nestId);
@@ -1466,7 +1467,7 @@ app.post('/api/subscription/billing', async (c) => {
   }
 });
 
-app.post('/api/subscription/transactions', async (c) => {
+app.post('/api/admin/subscription/transactions', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1484,7 +1485,7 @@ app.post('/api/subscription/transactions', async (c) => {
 });
 
 // Wallet connection endpoints
-app.post('/api/wallet/detect', async (c) => {
+app.post('/api/admin/wallet/detect', async (c) => {
   try {
     const availableWallets = await walletConnector.detectWallets();
     
@@ -1497,7 +1498,7 @@ app.post('/api/wallet/detect', async (c) => {
   }
 });
 
-app.post('/api/wallet/connect', async (c) => {
+app.post('/api/admin/wallet/connect', async (c) => {
   try {
     const body = await c.req.json();
     const { walletType } = body;
@@ -1517,7 +1518,7 @@ app.post('/api/wallet/connect', async (c) => {
   }
 });
 
-app.post('/api/wallet/info', async (c) => {
+app.post('/api/admin/wallet/info', async (c) => {
   try {
     const walletInfo = paymentManager.getConnectedWallet();
     
@@ -1538,7 +1539,7 @@ app.post('/api/wallet/info', async (c) => {
 });
 
 // Dashboard metrics
-app.post('/api/dashboard/stats', async (c) => {
+app.post('/api/admin/dashboard/stats', async (c) => {
   try {
     const nestId = extractNestId(c);
     const services = await hybridStorage.getServicesByNest(nestId);
@@ -1568,7 +1569,7 @@ app.post('/api/dashboard/stats', async (c) => {
 });
 
 // Widget management
-app.post('/api/widget/config', async (c) => {
+app.post('/api/admin/widget/config', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1622,7 +1623,7 @@ app.post('/api/widget/config', async (c) => {
   }
 });
 
-app.post('/api/widget/preview', async (c) => {
+app.post('/api/admin/widget/preview', async (c) => {
   try {
     const nestId = extractNestId(c);
     const body = await c.req.json();
@@ -1670,7 +1671,7 @@ app.post('/api/widget/preview', async (c) => {
 });
 
 // WorkerAnt status
-app.post('/api/worker-ants/status', async (c) => {
+app.post('/api/admin/worker-ants/status', async (c) => {
   // TODO: Get real WorkerAnt data from Redis
   const mockWorkerAnts = [
     { region: 'eu-west-1', count: 12, activeJobs: 156 },
@@ -1902,9 +1903,20 @@ async function startServer() {
       checks: Array.from(healthChecker['checks'].keys())
     });
     
-    // Apply authentication middleware to all /api/* routes
+    // Apply authentication middleware to all /api/admin/* routes except auth endpoints
     // This must be done after authManager is initialized
-    app.use('/api/*', authMiddleware);
+    app.use('/api/admin/*', (c, next) => {
+      // Skip auth for login/register/refresh endpoints
+      const path = c.req.path;
+      if (path.includes('/auth/login') || 
+          path.includes('/auth/register') || 
+          path.includes('/auth/refresh') ||
+          path.includes('/regions/list') ||
+          path.includes('/subscription/plans')) {
+        return next();
+      }
+      return authMiddleware(c, next);
+    });
     
     // Mount platform admin routes
     platformRoutes.use((c, next) => {
@@ -1915,7 +1927,7 @@ async function startServer() {
       c.set('redis', redis);
       return next();
     });
-    app.route('/api/platform', platformRoutes);
+    app.route('/api/admin/platform', platformRoutes);
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);
