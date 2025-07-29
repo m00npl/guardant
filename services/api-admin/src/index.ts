@@ -346,7 +346,7 @@ const hybridStorage = {
       status: 'unknown',
       responseTime: null,
       lastChecked: null,
-      regions: service.monitoring.regions.map(regionId => ({
+      regions: (service.monitoring?.regions || []).map(regionId => ({
         id: regionId,
         status: 'pending',
         responseTime: null,
@@ -531,7 +531,7 @@ const rabbitmqService = {
         type: service.type,
         target: service.target,
         config: service.config,
-        regions: service.monitoring.regions,
+        regions: service.monitoring?.regions || [],
         interval: service.interval,
       });
     } catch (error) {
@@ -1231,6 +1231,14 @@ app.post('/api/admin/services/create', async (c) => {
         }, 400);
       }
 
+      // Ensure monitoring object exists with default regions
+      if (!serviceData.monitoring) {
+        serviceData.monitoring = { regions: ['eu-west-1'] }; // Default region
+      }
+      if (!serviceData.monitoring.regions || !Array.isArray(serviceData.monitoring.regions)) {
+        serviceData.monitoring.regions = ['eu-west-1']; // Default region
+      }
+      
       // Validate regions
       const invalidRegions = serviceData.monitoring.regions.filter(
         regionId => !availableRegions.find(r => r.id === regionId && r.available)
@@ -1337,15 +1345,18 @@ app.post('/api/admin/services/update', async (c) => {
     const body = await c.req.json();
     const { id, ...serviceData } = body;
 
-    // Validate regions
-    const invalidRegions = serviceData.monitoring.regions.filter(
-      regionId => !availableRegions.find(r => r.id === regionId && r.available)
-    );
-    if (invalidRegions.length > 0) {
-      return c.json<ApiResponse>({ 
-        success: false, 
-        error: `Invalid or unavailable regions: ${invalidRegions.join(', ')}` 
-      }, 400);
+    // Ensure monitoring object exists
+    if (serviceData.monitoring && serviceData.monitoring.regions) {
+      // Validate regions only if provided
+      const invalidRegions = serviceData.monitoring.regions.filter(
+        regionId => !availableRegions.find(r => r.id === regionId && r.available)
+      );
+      if (invalidRegions.length > 0) {
+        return c.json<ApiResponse>({ 
+          success: false, 
+          error: `Invalid or unavailable regions: ${invalidRegions.join(', ')}` 
+        }, 400);
+      }
     }
 
     const updatedService = await hybridStorage.updateService(nestId, id, serviceData);
@@ -1617,7 +1628,7 @@ app.post('/api/admin/dashboard/stats', async (c) => {
       incidents: 0,
       avgResponseTime: 0,
       uptime: 100,
-      activeColonies: services.reduce((acc, s) => acc + s.monitoring.regions.length, 0),
+      activeColonies: services.reduce((acc, s) => acc + (s.monitoring?.regions?.length || 0), 0),
       busyWorkerAnts: 0,
     };
 
