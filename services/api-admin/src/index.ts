@@ -1919,7 +1919,7 @@ async function startServer() {
     });
     
     // Mount platform admin routes
-    platformRoutes.use((c, next) => {
+    app.use('/api/admin/platform/*', (c, next) => {
       // Pass required services to platform routes
       c.set('storage', hybridStorage);
       c.set('authManager', authManager);
