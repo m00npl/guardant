@@ -80,9 +80,18 @@ async function startWorker() {
     const connection = await amqp.connect(config.rabbitmqUrl);
     const channel = await connection.createChannel();
 
-    // Declare exchange and queue
+    // Declare exchange and shared queue
     await channel.assertExchange('worker_commands', 'direct');
-    const q = await channel.assertQueue('', { exclusive: true });
+    
+    // Use a shared queue for all workers (not exclusive)
+    const queueName = 'monitoring_workers';
+    const q = await channel.assertQueue(queueName, { 
+      durable: true,
+      exclusive: false  // Shared between workers
+    });
+    
+    // Set prefetch to 1 to ensure fair distribution
+    await channel.prefetch(1);
     
     // Bind queue to commands
     await channel.bindQueue(q.queue, 'worker_commands', 'monitor_service');
