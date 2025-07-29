@@ -963,9 +963,11 @@ app.post('/api/admin/auth/login', async (c) => {
   const requestLogger = c.get('logger');
   
   return tracing.traceBusinessEvent('user_login', async (span) => {
+    let email: string | undefined;
     try {
       const body = await c.req.json();
-      const { email, password } = body;
+      ({ email } = body);
+      const { password } = body;
 
       // Extract device info
       const userAgent = c.req.header('User-Agent') || 'Unknown';
