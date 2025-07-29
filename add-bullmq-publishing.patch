@@ -1,0 +1,57 @@
+--- a/services/api-admin/src/index.ts
++++ b/services/api-admin/src/index.ts
+@@ -1,5 +1,6 @@
+ import { Hono } from 'hono';
+ import { cors } from 'hono/cors';
++import { Queue } from 'bullmq';
+ import { v4 as uuidv4 } from 'uuid';
+ import Redis from 'ioredis';
+ import amqp from 'amqplib';
+@@ -264,6 +265,9 @@
+ let metricsCollector: any;
+ let tracing: any;
+ 
++// BullMQ queues for worker communication
++let monitoringQueue: Queue | null = null;
++
+ // RabbitMQ configuration
+ let rabbitmqConfig: any;
+ let rabbitmqConnection: amqp.Connection | null = null;
+@@ -1303,10 +1307,24 @@
+       // Request monitoring from workers via RabbitMQ - trace this messaging operation
+       await tracing.traceMessagePublish('worker_commands', 'monitor_service', async (msgSpan) => {
+         msgSpan.setAttributes({
+           'guardant.service.id': service.id,
+           'guardant.service.type': service.type,
+           'guardant.nest.id': nestId,
+         });
+-        return await rabbitmqService.requestServiceMonitoring(service);
++        
++        // Try BullMQ first (for current workers)
++        if (monitoringQueue) {
++          await monitoringQueue.add('check', {
++            service,
++            nestId,
++          }, {
++            repeat: {
++              every: service.interval * 1000, // Convert to milliseconds
++            },
++          });
++          console.log(`📤 Scheduled monitoring for service ${service.id} via BullMQ`);
++        } else {
++          // Fallback to RabbitMQ
++          return await rabbitmqService.requestServiceMonitoring(service);
++        }
+       });
+ 
+@@ -1830,6 +1848,10 @@
+     await redis.ping();
+     console.log('✅ Redis storage initialized');
+     
++    // Initialize BullMQ monitoring queue
++    monitoringQueue = new Queue('monitoring', { connection: redis });
++    console.log('✅ BullMQ monitoring queue initialized');
++    
+     // Initialize tracing with config
+     tracing = initializeTracing('guardant-admin-api', {
+       serviceVersion: '1.0.0',

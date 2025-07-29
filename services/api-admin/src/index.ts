@@ -13,6 +13,7 @@ const globalStartupId = Math.random().toString(36).substring(7);
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { Queue } from 'bullmq';
 import { v4 as uuidv4 } from 'uuid';
 import Redis from 'ioredis';
 import amqp from 'amqplib';
@@ -264,6 +265,9 @@ let redisWithMetrics: any = {
 
   pipeline: () => redis.pipeline(),
 };
+
+// BullMQ queues for worker communication
+let monitoringQueue: Queue | null = null;
 
 // RabbitMQ configuration
 let rabbitmqConfig: any;
@@ -1300,14 +1304,34 @@ app.post('/api/admin/services/create', async (c) => {
         console.warn('⚠️ Failed to update subscription usage:', (error as Error).message);
       }
 
-      // Request monitoring from workers via RabbitMQ - trace this messaging operation
+      // Request monitoring from workers - trace this messaging operation
       await tracing.traceMessagePublish('worker_commands', 'monitor_service', async (msgSpan) => {
         msgSpan.setAttributes({
           'guardant.service.id': service.id,
           'guardant.service.type': service.type,
           'guardant.nest.id': nestId,
         });
-        return await rabbitmqService.requestServiceMonitoring(service);
+        
+        // Use BullMQ for current workers
+        if (monitoringQueue) {
+          await monitoringQueue.add('check', {
+            service,
+            nestId,
+          }, {
+            repeat: {
+              every: service.interval * 1000, // Convert to milliseconds
+            },
+          });
+          console.log(`📤 Scheduled monitoring for service ${service.id} via BullMQ`);
+          requestLogger.info('Service monitoring scheduled', { 
+            serviceId: service.id,
+            interval: service.interval,
+            queue: 'monitoring'
+          });
+        } else {
+          // Fallback to RabbitMQ
+          return await rabbitmqService.requestServiceMonitoring(service);
+        }
       });
 
       // Log successful service creation
@@ -1832,6 +1856,10 @@ async function startServer() {
     // Test Redis connection
     await redis.ping();
     console.log('✅ Redis storage initialized');
+    
+    // Initialize BullMQ monitoring queue
+    monitoringQueue = new Queue('monitoring', { connection: redis });
+    console.log('✅ BullMQ monitoring queue initialized');
     
     // Initialize tracing with config
     tracing = initializeTracing('guardant-admin-api', {
