@@ -663,6 +663,8 @@ const availableRegions: MonitoringRegion[] = [
 // Helper functions
 const extractNestId = (c: any): string => {
   const user = getAuthUser(c);
+  console.log('🔍 extractNestId - user:', user);
+  console.log('🔍 extractNestId - nestId:', user?.nestId);
   return user?.nestId || '';
 };
 
@@ -1924,17 +1926,24 @@ async function startServer() {
     
     // Apply authentication middleware to all /api/admin/* routes except auth endpoints
     // This must be done after authManager is initialized
-    app.use('/api/admin/*', (c, next) => {
+    app.use('/api/admin/*', async (c, next) => {
       // Skip auth for login/register/refresh endpoints
       const path = c.req.path;
+      console.log('🔐 Auth middleware check for path:', path);
+      
       if (path.includes('/auth/login') || 
           path.includes('/auth/register') || 
           path.includes('/auth/refresh') ||
           path.includes('/regions/list') ||
           path.includes('/subscription/plans')) {
+        console.log('🔓 Skipping auth for public endpoint');
         return next();
       }
-      return authMiddleware(c, next);
+      
+      console.log('🔒 Applying auth middleware');
+      const result = await authMiddleware(c, next);
+      console.log('🔍 After auth - user in context:', c.get('user'));
+      return result;
     });
     
     // Mount platform admin routes
