@@ -83,7 +83,8 @@ services:
       - VAULT_ENABLED=true
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-here}
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-change-this-in-production}
       - GOLEM_PRIVATE_KEY_PATH=/config/golembase/private.key
     volumes:
       - golem-config:/config/golembase
