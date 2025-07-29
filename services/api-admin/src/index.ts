@@ -7,6 +7,10 @@ console.log(`🏁 Import meta:`, {
   dir: import.meta.dir 
 });
 
+// Global flag to prevent double server start
+let globalServerStarted = false;
+const globalStartupId = Math.random().toString(36).substring(7);
+
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { v4 as uuidv4 } from 'uuid';
@@ -1706,12 +1710,19 @@ let startServerCalled = false;
 async function startServer() {
   console.log(`🚦 [${startupId}] Starting server initialization...`);
   
+  // Check global flag first
+  if (globalServerStarted) {
+    console.error(`❌ [${startupId}] Server already started globally! Preventing duplicate execution.`);
+    return;
+  }
+  
   // Check if already called
   if (startServerCalled) {
     console.error(`❌ [${startupId}] startServer already called! Preventing duplicate execution.`);
     return;
   }
   startServerCalled = true;
+  globalServerStarted = true;
   
   try {
     // Initialize configuration

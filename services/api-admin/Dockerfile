@@ -35,5 +35,5 @@ EXPOSE 3002
 # Add environment to help with debugging
 ENV DOCKER=true
 
-# Run the application directly
-CMD ["bun", "src/index.ts"]
+# Run the application with explicit run command to prevent auto-server
+CMD ["bun", "run", "--no-install", "src/index.ts"]
