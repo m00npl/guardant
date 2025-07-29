@@ -7,6 +7,8 @@ services:
       dockerfile: nginx/Dockerfile
     ports:
       - "8080:80"
+    volumes:
+      - admin-api-port:/tmp
     depends_on:
       - admin-frontend
       - admin-api
@@ -86,6 +88,7 @@ services:
       - GOLEM_PRIVATE_KEY_PATH=/config/golembase/private.key
     volumes:
       - golem-config:/config/golembase
+      - admin-api-port:/tmp
     depends_on:
       postgres:
         condition: service_healthy
@@ -299,6 +302,7 @@ volumes:
   golem-config:
   vault-data:
   vault-logs:
+  admin-api-port:
 
 networks:
   guardant-network:

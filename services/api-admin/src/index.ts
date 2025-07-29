@@ -2036,7 +2036,8 @@ async function startServer() {
         try {
           const fs = require('fs');
           fs.writeFileSync('/tmp/admin-api-port.txt', server.port.toString());
-          console.log(`📝 Port written to /tmp/admin-api-port.txt`);
+          fs.chmodSync('/tmp/admin-api-port.txt', 0o644);
+          console.log(`📝 Port ${server.port} written to /tmp/admin-api-port.txt`);
         } catch (e) {
           console.log(`⚠️  Could not write port file:`, e.message);
         }

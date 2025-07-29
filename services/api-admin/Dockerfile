@@ -25,5 +25,5 @@ EXPOSE 45678
 # Add environment to help with debugging
 ENV DOCKER=true
 
-# Run the application directly with specific port
-CMD ["bun", "run", "--port", "45678", "src/index.ts"]
+# Run the application directly
+CMD ["bun", "src/index.ts"]
