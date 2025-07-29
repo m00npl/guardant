@@ -135,6 +135,24 @@ services:
     networks:
       - guardant-network
 
+  monitoring-scheduler:
+    container_name: guardant-scheduler
+    build:
+      context: .
+      dockerfile: services/scheduler/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
   monitoring-worker:
     build:
       context: .
@@ -152,6 +170,8 @@ services:
       - VAULT_TOKEN=${VAULT_TOKEN:-}
       - WORKER_ID={{.Task.ID}}
       - WORKER_REGION=${WORKER_REGION:-us-east-1}
+      - WORKER_REPLICAS=3
+      - RESTORE_MONITORING=false  # Scheduler handles this now
     # No additional volumes needed
     depends_on:
       postgres:
@@ -161,6 +181,8 @@ services:
       rabbitmq:
         condition: service_healthy
       vault:
+        condition: service_started
+      monitoring-scheduler:
         condition: service_started
     restart: unless-stopped
     networks:

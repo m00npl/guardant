@@ -64,6 +64,49 @@ let monitoringService: MonitoringService;
 // Active monitoring intervals
 const activeMonitoring = new Map<string, NodeJS.Timeout>();
 
+// Restore monitoring state from Redis
+async function restoreMonitoringState() {
+  try {
+    logger.info('🔄 Checking for services to monitor...');
+    
+    // This worker will only pick up a subset of services based on worker ID hash
+    const workerIndex = parseInt(config.workerId.replace(/\D/g, '')) || 0;
+    const totalWorkers = parseInt(process.env.WORKER_REPLICAS || '3');
+    
+    const serviceKeys = await redis.keys('services:*');
+    let restoredCount = 0;
+    
+    for (const key of serviceKeys) {
+      const servicesData = await redis.get(key);
+      if (servicesData) {
+        const services = JSON.parse(servicesData);
+        for (const service of services) {
+          if (service.isActive) {
+            // Simple distribution based on service ID hash
+            const serviceHash = service.id.split('').reduce((a, b) => {
+              a = ((a << 5) - a) + b.charCodeAt(0);
+              return a & a;
+            }, 0);
+            
+            if (Math.abs(serviceHash) % totalWorkers === workerIndex % totalWorkers) {
+              logger.info('📌 Restoring monitoring for service', { 
+                serviceId: service.id,
+                name: service.name 
+              });
+              await handleMonitorService(service);
+              restoredCount++;
+            }
+          }
+        }
+      }
+    }
+    
+    logger.info('✅ Restored monitoring', { count: restoredCount });
+  } catch (error) {
+    logger.error('Failed to restore monitoring state', error);
+  }
+}
+
 async function startWorker() {
   try {
     logger.info('🚀 RabbitMQ Worker starting...', { workerId: config.workerId });
@@ -75,6 +118,12 @@ async function startWorker() {
 
     // Initialize monitoring service
     monitoringService = new MonitoringService(region);
+    
+    // Check if we should restore monitoring state
+    const shouldRestore = process.env.RESTORE_MONITORING !== 'false';
+    if (shouldRestore) {
+      await restoreMonitoringState();
+    }
 
     // Connect to RabbitMQ
     const connection = await amqp.connect(config.rabbitmqUrl);
@@ -96,6 +145,7 @@ async function startWorker() {
     // Bind queue to commands
     await channel.bindQueue(q.queue, 'worker_commands', 'monitor_service');
     await channel.bindQueue(q.queue, 'worker_commands', 'stop_monitoring');
+    await channel.bindQueue(q.queue, 'worker_commands', 'check_service_once');
 
     logger.info('✅ Connected to RabbitMQ and ready to receive commands');
 
@@ -117,6 +167,10 @@ async function startWorker() {
           
           case 'stop_monitoring':
             await handleStopMonitoring(command.data);
+            break;
+            
+          case 'check_service_once':
+            await handleSingleCheck(command.data);
             break;
           
           default:
@@ -237,6 +291,98 @@ async function handleStopMonitoring(data: any) {
     logger.info('✅ Monitoring stopped', { serviceId });
   } else {
     logger.warn('No active monitoring found', { serviceId });
+  }
+}
+
+// Handle single check (from scheduler)
+async function handleSingleCheck(data: any) {
+  const { serviceId, nestId, type, target, config, regions, cacheKey } = data;
+  
+  logger.info('🔍 Performing single check', { serviceId, type, target });
+  
+  const service: Service = {
+    id: serviceId,
+    nestId,
+    name: target,
+    type,
+    target,
+    interval: 0, // Not used for single check
+    config: config || {},
+    monitoring: {
+      regions: regions || [],
+    },
+  };
+  
+  try {
+    const result = await monitoringService.checkService(service);
+    
+    // Store result in Redis
+    await redis.setex(
+      `status:${nestId}:${serviceId}`,
+      300, // 5 minutes TTL
+      JSON.stringify(result)
+    );
+    
+    // Send result back to scheduler
+    if (rabbitmqChannel) {
+      await rabbitmqChannel.assertExchange('monitoring_results', 'direct');
+      
+      const resultMessage = JSON.stringify({
+        serviceId,
+        nestId,
+        status: result.status,
+        responseTime: result.responseTime,
+        timestamp: Date.now(),
+        workerId: config.workerId,
+        region: config.region,
+        cacheKey, // Include cache key for deduplication
+      });
+      
+      await rabbitmqChannel.publish(
+        'monitoring_results',
+        'check_completed',
+        Buffer.from(resultMessage),
+        { persistent: true }
+      );
+    }
+    
+    logger.info('✅ Single check completed', { 
+      serviceId, 
+      status: result.status,
+      responseTime: result.responseTime 
+    });
+    
+    // Record metrics
+    metricsCollector.recordMonitoringCheck(
+      nestId,
+      serviceId,
+      result.status,
+      config.region || 'unknown',
+      result.responseTime || 0,
+      type
+    );
+    
+  } catch (error) {
+    logger.error('Single check failed', error, { serviceId });
+    
+    // Send failure result to scheduler
+    if (rabbitmqChannel) {
+      const failureMessage = JSON.stringify({
+        serviceId,
+        nestId,
+        status: 'error',
+        error: error.message,
+        timestamp: Date.now(),
+        workerId: config.workerId,
+      });
+      
+      await rabbitmqChannel.publish(
+        'monitoring_results',
+        'check_completed',
+        Buffer.from(failureMessage),
+        { persistent: true }
+      );
+    }
   }
 }
 
