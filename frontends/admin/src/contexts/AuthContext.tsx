@@ -30,6 +30,35 @@ const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
 // Don't set baseURL, use relative paths
 // axios.defaults.baseURL = API_URL;
 
+// Add request interceptor to add auth token
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      delete axios.defaults.headers.common['Authorization'];
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +66,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchProfile();
     } else {
       setLoading(false);
@@ -50,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(response.data.data);
     } catch (error) {
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem('refreshToken');
     } finally {
       setLoading(false);
     }
@@ -63,7 +91,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       setUser(user);
       toast.success('Welcome back!');
@@ -86,7 +113,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       setUser(user);
       toast.success('Account created successfully!');
@@ -104,7 +130,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      delete axios.defaults.headers.common['Authorization'];
       setUser(null);
       toast.success('Logged out successfully');
     }
@@ -119,7 +144,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { token } = response.data.data;
       
       localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } catch (error) {
       await logout();
       throw error;
