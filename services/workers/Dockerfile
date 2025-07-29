@@ -23,5 +23,5 @@ WORKDIR /app/services/workers
 ENV NODE_ENV=production
 ENV WORKER_ID=${HOSTNAME}
 
-# Start the worker
-CMD ["bun", "run", "src/index.ts"]
+# Start the RabbitMQ worker
+CMD ["bun", "run", "src/rabbitmq-worker.ts"]
