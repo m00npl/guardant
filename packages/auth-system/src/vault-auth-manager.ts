@@ -71,18 +71,18 @@ export class VaultAuthManager extends AuthManager {
       // Store user in regular storage
       await this.storage.createUser(user);
 
-      // Generate tokens
-      const accessToken = this.generateAccessToken(user);
-      const refreshToken = this.generateRefreshToken(user);
-
       // Create session
-      const session = await this.createUserSession(user, { userAgent: 'System', ip: '127.0.0.1' });
+      const sessionResult = await this.createSession(user, { userAgent: 'System', ip: '127.0.0.1' });
+
+      if (!sessionResult.success) {
+        return { success: false, error: 'Failed to create session' };
+      }
 
       return {
         success: true,
         user,
-        tokens: { accessToken, refreshToken },
-        session,
+        tokens: sessionResult.tokens!,
+        session: sessionResult.session!,
       };
     } catch (error: any) {
       return { success: false, error: error.message || 'Internal server error' };
@@ -132,18 +132,18 @@ export class VaultAuthManager extends AuthManager {
         };
       }
 
-      // Generate tokens
-      const accessToken = this.generateAccessToken(user);
-      const refreshToken = this.generateRefreshToken(user);
-
       // Create session
-      const session = await this.createUserSession(user, deviceInfo);
+      const sessionResult = await this.createSession(user, deviceInfo);
+
+      if (!sessionResult.success) {
+        return { success: false, error: 'Failed to create session' };
+      }
 
       return {
         success: true,
         user,
-        tokens: { accessToken, refreshToken },
-        session,
+        tokens: sessionResult.tokens!,
+        session: sessionResult.session!,
       };
     } catch (error: any) {
       return { success: false, error: error.message || 'Internal server error' };
