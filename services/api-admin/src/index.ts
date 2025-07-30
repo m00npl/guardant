@@ -2090,14 +2090,20 @@ async function startServer() {
       }
       
       // Apply auth middleware and check user context
-      const result = await authMiddleware(c, async () => {
-        console.log('✅ Auth middleware passed');
-        console.log('🔍 User in context:', c.get('user'));
-        console.log('🔍 Context vars:', Object.keys(c.var || {}));
-        return next();
-      });
-      
-      return result;
+      try {
+        const result = await authMiddleware(c, async () => {
+          console.log('✅ Auth middleware passed');
+          console.log('🔍 User in context:', c.get('user'));
+          console.log('🔍 Context vars:', Object.keys(c.var || {}));
+          return next();
+        });
+        
+        console.log('🔍 Auth middleware result:', result?.status);
+        return result;
+      } catch (error) {
+        console.error('❌ Auth middleware error:', error);
+        return c.json({ success: false, error: 'Authentication failed' }, 401);
+      }
     });
     
     // Register all API endpoints after middleware is set up

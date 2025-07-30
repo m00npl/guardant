@@ -4,20 +4,9 @@ import { createLogger } from '../../../../shared/logger';
 import Redis from 'ioredis';
 import axios from 'axios';
 import crypto from 'crypto';
-import { getAuthUser } from '/app/packages/auth-system/src/index';
 
 const logger = createLogger('workers-api');
 const workersApi = new Hono();
-
-// Middleware to check authentication
-workersApi.use('/*', async (c, next) => {
-  const user = getAuthUser(c);
-  if (!user) {
-    return c.json({ success: false, error: 'Authentication required' }, 401);
-  }
-  c.set('user', user);
-  await next();
-});
 
 // Redis instance
 const redis = new Redis({
