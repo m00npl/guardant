@@ -1,5 +1,6 @@
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import { AuthManager } from './auth-manager';
 import type { AuthConfig, AuthStorage, AuthResponse, NestUser, UserRole } from './types';
 
@@ -45,7 +46,7 @@ export class VaultAuthManager extends AuthManager {
       }
 
       // Create user ID
-      const userId = this.generateId();
+      const userId = uuidv4();
       
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
