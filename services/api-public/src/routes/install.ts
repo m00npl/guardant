@@ -21,6 +21,23 @@ echo "🚀 GuardAnt Worker Installer"
 echo "==========================="
 echo ""
 
+# Show installation location and ask for confirmation
+echo "📍 Installation location: \$INSTALL_DIR"
+echo ""
+echo -n "Do you want to proceed with installation in this directory? (y/N): "
+read CONFIRM < /dev/tty
+
+if [[ ! \$CONFIRM =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "❌ Installation cancelled by user"
+    echo ""
+    echo "To install in a different location, run:"
+    echo "  INSTALL_DIR=/your/path curl -sSL https://guardant.me/install | bash"
+    exit 0
+fi
+
+echo ""
+
 # Get owner email if not provided
 if [ -z "\$OWNER_EMAIL" ]; then
     # Read from /dev/tty to work even when piped
