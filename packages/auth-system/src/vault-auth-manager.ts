@@ -19,7 +19,7 @@ export class VaultAuthManager extends AuthManager {
     vaultClient: VaultClient,
     vaultBasePath: string = 'secret/users/passwords'
   ) {
-    super(storage, config);
+    super(config, storage);
     this.vaultClient = vaultClient;
     this.vaultBasePath = vaultBasePath;
   }
