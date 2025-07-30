@@ -11,12 +11,20 @@ CONFIG=$(docker exec guardant-redis redis-cli HGET "workers:registrations" "$WOR
 USERNAME=$(echo "$CONFIG" | jq -r '.workerUsername')
 PASSWORD=$(echo "$CONFIG" | jq -r '.workerPassword')
 
-echo "📝 Username: $USERNAME"
+# If username is null, generate it from workerId
+if [ "$USERNAME" = "null" ] || [ -z "$USERNAME" ]; then
+    USERNAME="worker-$WORKER_ID"
+    echo "⚠️  Username was null, using: $USERNAME"
+else
+    echo "📝 Username: $USERNAME"
+fi
 
 # Update config with RabbitMQ URL (use local RabbitMQ)
+# Also ensure username is set
 UPDATED_CONFIG=$(echo "$CONFIG" | jq \
   --arg url "amqp://$USERNAME:$PASSWORD@guardant-rabbitmq:5672" \
-  '.rabbitmqUrl = $url')
+  --arg username "$USERNAME" \
+  '.rabbitmqUrl = $url | .workerUsername = $username')
 
 # Save updated config
 docker exec guardant-redis redis-cli HSET "workers:registrations" "$WORKER_ID" "$UPDATED_CONFIG"
