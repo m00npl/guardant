@@ -10,9 +10,9 @@ echo ""
 # Check if we're in docker or on host
 if [ -f /.dockerenv ]; then
     # Inside docker
-    VAULT_ADDR=${VAULT_ADDR:-http://vault:8200}
+    VAULT_ADDR=${VAULT_ADDR:-http://guardant-vault:8200}
 else
-    # On host - use localhost
+    # On host - use localhost port
     VAULT_ADDR=${VAULT_ADDR:-http://localhost:8200}
 fi
 

@@ -5,6 +5,11 @@ import Redis from 'ioredis';
 import type { AuthConfig } from '../../../packages/auth-system/src/types';
 
 export function setupAuthManager(redis: Redis): AuthManager {
+  // Override VAULT_ADDR if not set to use Docker service name
+  if (!process.env.VAULT_ADDR && process.env.VAULT_TOKEN) {
+    process.env.VAULT_ADDR = 'http://guardant-vault:8200';
+  }
+  
   const authConfig: AuthConfig = {
     jwt: {
       accessTokenSecret: process.env.JWT_SECRET || 'your-secret-key-here',

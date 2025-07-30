@@ -3,7 +3,7 @@
 import Redis from 'ioredis';
 import { VaultPasswordService } from '../packages/vault-password-manager';
 
-const VAULT_ADDR = process.env.VAULT_ADDR || 'http://vault:8200';
+const VAULT_ADDR = process.env.VAULT_ADDR || 'http://guardant-vault:8200';
 const VAULT_TOKEN = process.env.VAULT_TOKEN;
 
 async function migratePasswords() {

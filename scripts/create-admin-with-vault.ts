@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
-const VAULT_ADDR = process.env.VAULT_ADDR || 'http://vault:8200';
+const VAULT_ADDR = process.env.VAULT_ADDR || 'http://guardant-vault:8200';
 const VAULT_TOKEN = process.env.VAULT_TOKEN;
 
 async function getVaultSecret(path: string, key: string) {
