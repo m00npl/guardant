@@ -150,3 +150,22 @@ else
     echo -e "${RED}❌ Neither curl nor wget found. Please install one of them.${NC}"
     exit 1
 fi
+
+# Show completion message with next steps
+echo ""
+echo -e "${GREEN}✅ Installation complete!${NC}"
+echo ""
+echo -e "${BLUE}📋 Next steps:${NC}"
+echo -e "1. ${YELLOW}Admin will receive notification for: $OWNER_EMAIL${NC}"
+echo -e "2. ${YELLOW}Check your email or GuardAnt dashboard for approval${NC}"
+echo -e "3. ${YELLOW}Workers will start automatically once approved${NC}"
+echo ""
+echo -e "${BLUE}📊 Useful commands:${NC}"
+echo -e "  Check status:  ${GREEN}cd $INSTALL_DIR && docker compose ps${NC}"
+echo -e "  View logs:     ${GREEN}cd $INSTALL_DIR && docker compose logs -f${NC}"
+echo -e "  Stop workers:  ${GREEN}cd $INSTALL_DIR && docker compose down${NC}"
+echo -e "  Start workers: ${GREEN}cd $INSTALL_DIR && docker compose up -d${NC}"
+echo ""
+echo -e "${BLUE}📍 Worker location:${NC} ${YELLOW}$INSTALL_DIR${NC}"
+echo ""
+echo -e "${GREEN}Thank you for joining the GuardAnt Worker Network! 🐜${NC}"
