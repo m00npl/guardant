@@ -77,11 +77,11 @@ services:
       - PORT=3002
       - HOSTNAME=0.0.0.0
       - BUN_CONFIG_NO_CLEAR_TERMINAL=1
-      - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - DATABASE_URL=postgresql://guardant:guardant123@guardant-postgres:5432/guardant
+      - REDIS_URL=redis://guardant-redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
       - VAULT_ENABLED=true
-      - VAULT_ADDR=http://vault:8200
+      - VAULT_ADDR=http://guardant-vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
       - REFRESH_SECRET=${REFRESH_SECRET:-your-super-secret-refresh-key-change-this-in-production}
@@ -93,13 +93,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/app/deployment
     depends_on:
-      postgres:
+      guardant-postgres:
         condition: service_healthy
-      redis:
+      guardant-redis:
         condition: service_healthy
-      rabbitmq:
+      guardant-rabbitmq:
         condition: service_healthy
-      vault:
+      guardant-vault:
         condition: service_started
     restart: on-failure:3
     networks:
@@ -115,21 +115,21 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4001
-      - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - DATABASE_URL=postgresql://guardant:guardant123@guardant-postgres:5432/guardant
+      - REDIS_URL=redis://guardant-redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
       - VAULT_ENABLED=true
-      - VAULT_ADDR=http://vault:8200
+      - VAULT_ADDR=http://guardant-vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
     # No additional volumes needed
     depends_on:
-      postgres:
+      guardant-postgres:
         condition: service_healthy
-      redis:
+      guardant-redis:
         condition: service_healthy
-      rabbitmq:
+      guardant-rabbitmq:
         condition: service_healthy
-      vault:
+      guardant-vault:
         condition: service_started
     restart: unless-stopped
     networks:
@@ -142,12 +142,12 @@ services:
       dockerfile: services/scheduler/Dockerfile
     environment:
       - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - REDIS_URL=redis://guardant-redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
     depends_on:
-      redis:
+      guardant-redis:
         condition: service_healthy
-      rabbitmq:
+      guardant-rabbitmq:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -162,11 +162,11 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4002
-      - DATABASE_URL=postgresql://guardant:guardant123@postgres:5432/guardant
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://guardant:guardant123@rabbitmq:5672
+      - DATABASE_URL=postgresql://guardant:guardant123@guardant-postgres:5432/guardant
+      - REDIS_URL=redis://guardant-redis:6379
+      - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
       - VAULT_ENABLED=true
-      - VAULT_ADDR=http://vault:8200
+      - VAULT_ADDR=http://guardant-vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-}
       - WORKER_ID={{.Task.ID}}
       - WORKER_REGION=${WORKER_REGION:-us-east-1}
@@ -174,13 +174,13 @@ services:
       - RESTORE_MONITORING=false  # Scheduler handles this now
     # No additional volumes needed
     depends_on:
-      postgres:
+      guardant-postgres:
         condition: service_healthy
-      redis:
+      guardant-redis:
         condition: service_healthy
-      rabbitmq:
+      guardant-rabbitmq:
         condition: service_healthy
-      vault:
+      guardant-vault:
         condition: service_started
       monitoring-scheduler:
         condition: service_started
