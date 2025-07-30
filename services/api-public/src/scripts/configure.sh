@@ -32,25 +32,26 @@ echo ""
 echo -e "${BLUE}🔍 Checking system requirements...${NC}"
 MISSING_DEPS=""
 
-if ! command -v docker &> /dev/null; then
+# Check Docker - try multiple methods
+if command -v docker >/dev/null 2>&1 || [ -x "/usr/bin/docker" ] || [ -x "/usr/local/bin/docker" ]; then
+    echo -e "${GREEN}✅ Docker is installed${NC}"
+else
     MISSING_DEPS="$MISSING_DEPS docker"
     echo -e "${RED}❌ Docker is NOT installed${NC}"
-else
-    echo -e "${GREEN}✅ Docker is installed${NC}"
 fi
 
-if ! command -v git &> /dev/null; then
+if command -v git >/dev/null 2>&1 || [ -x "/usr/bin/git" ] || [ -x "/usr/local/bin/git" ]; then
+    echo -e "${GREEN}✅ Git is installed${NC}"
+else
     MISSING_DEPS="$MISSING_DEPS git"
     echo -e "${RED}❌ Git is NOT installed${NC}"
-else
-    echo -e "${GREEN}✅ Git is installed${NC}"
 fi
 
-if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
+if command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1 || [ -x "/usr/bin/curl" ] || [ -x "/usr/bin/wget" ]; then
+    echo -e "${GREEN}✅ curl/wget is installed${NC}"
+else
     MISSING_DEPS="$MISSING_DEPS curl"
     echo -e "${RED}❌ curl/wget is NOT installed${NC}"
-else
-    echo -e "${GREEN}✅ curl/wget is installed${NC}"
 fi
 
 if [ ! -z "$MISSING_DEPS" ]; then
