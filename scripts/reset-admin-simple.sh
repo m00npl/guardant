@@ -57,7 +57,7 @@ if [[ "$EXISTS" == *"0"* ]]; then
     
     # Store in Redis
     docker compose exec redis redis-cli SET "auth:user:$USER_ID" "$USER_JSON" > /dev/null
-    docker compose exec redis redis-cli SET "auth:email:$EMAIL" "$USER_ID" > /dev/null
+    docker compose exec redis redis-cli SET "auth:user:email:$EMAIL" "$USER_ID" > /dev/null
     
     echo "✅ Admin user created"
 else
