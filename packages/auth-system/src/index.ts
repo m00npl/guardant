@@ -1,6 +1,8 @@
 // Main auth system exports
 export { AuthManager } from './auth-manager';
 export { RedisAuthStorage } from './redis-storage';
+export { VaultAuthManager } from './vault-auth-manager';
+export { VaultHttpClient, createVaultClient } from './vault-client';
 export {
   createAuthMiddleware,
   createPermissionMiddleware,

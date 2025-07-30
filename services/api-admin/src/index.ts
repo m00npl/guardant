@@ -54,6 +54,7 @@ import {
   type NestUser,
   type UserRole 
 } from '/app/packages/auth-system/src/index';
+import { setupAuthManager } from './auth-setup';
 import { platformRoutes } from './platform-routes-simple';
 import {
   PaymentManager,
@@ -635,7 +636,6 @@ app.use('*', (c, next) => {
 
 // Authentication and payment systems - will be initialized after config loads
 let authConfig: AuthConfig;
-let authStorage: RedisAuthStorage;
 let authManager: AuthManager;
 let holeskyConfig: HoleskyConfig;
 let paymentStorage: RedisPaymentStorage;
@@ -1913,8 +1913,7 @@ async function startServer() {
         },
       },
     };
-    authStorage = new RedisAuthStorage(redis);
-    authManager = new AuthManager(authConfig, authStorage);
+    authManager = setupAuthManager(redis);
     
     // Initialize authentication middleware now that authManager is ready
     authMiddleware = createAuthMiddleware(authManager);
