@@ -125,7 +125,12 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+# Check for Docker Compose (both variants)
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version &> /dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
     echo "❌ Docker Compose is not installed. Please install Docker Compose first."
     exit 1
 fi
@@ -176,7 +181,7 @@ echo "Next steps:"
 echo "1. Admin will receive notification for: \$OWNER_EMAIL"
 echo "2. Wait for approval in GuardAnt dashboard"
 echo "3. Worker will start automatically once approved"
-echo "4. Check logs: cd \$INSTALL_DIR && docker-compose logs -f"
+echo "4. Check logs: cd \$INSTALL_DIR && \$DOCKER_COMPOSE_CMD logs -f"
 echo ""
 echo "Worker location: \$INSTALL_DIR"
 echo "Owner email: \$OWNER_EMAIL"
