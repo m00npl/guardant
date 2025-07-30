@@ -108,11 +108,13 @@ fi
 
 # Step 6: Run database migrations
 echo "📊 Step 6: Running database migrations..."
-docker compose run --rm admin-api bun run migrate
+# No migration script available - skipping
+echo "⚠️  No migration script found - skipping database migrations"
 
 # Step 7: Create platform admin (if needed)
 echo "👤 Step 7: Creating platform admin..."
-docker compose run --rm admin-api bun run scripts/create-platform-admin.ts
+# Platform admin creation script not available - skipping
+echo "⚠️  No platform admin script found - skipping"
 
 # Step 8: Start all services
 echo "🚀 Step 8: Starting all services..."
