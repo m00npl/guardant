@@ -25,7 +25,7 @@ services:
     container_name: guardant-admin-frontend
     build:
       context: .
-      dockerfile: frontends/admin/Dockerfile
+      dockerfile: apps/frontend-admin/Dockerfile
     expose:
       - "80"
     environment:

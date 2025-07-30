@@ -4,18 +4,21 @@ FROM oven/bun:1 as builder
 
 WORKDIR /app
 
-# Copy package files
-COPY apps/frontend-admin/package*.json ./
-COPY apps/frontend-admin/tsconfig*.json ./
-COPY apps/frontend-admin/vite.config.ts ./
-COPY apps/frontend-admin/tailwind.config.js ./
+# Copy root package files for workspace
+COPY package.json bun.lockb* ./
+COPY tsconfig.json ./
+
+# Copy workspace packages
+COPY packages packages/
+
+# Copy app files
+COPY apps/frontend-admin apps/frontend-admin/
+
+# Change to app directory
+WORKDIR /app/apps/frontend-admin
 
 # Install dependencies
 RUN bun install
-
-# Copy source files
-COPY apps/frontend-admin/index.html ./
-COPY apps/frontend-admin/src ./src
 
 # Build the application
 RUN bun run build
@@ -24,7 +27,7 @@ RUN bun run build
 FROM nginx:alpine
 
 # Copy built files from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/frontend-admin/dist /usr/share/nginx/html
 
 # Copy nginx configuration if exists
 COPY apps/frontend-admin/nginx.conf /etc/nginx/conf.d/default.conf || echo "No custom nginx config"
