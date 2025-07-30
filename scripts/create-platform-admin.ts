@@ -27,9 +27,9 @@ async function createPlatformAdmin() {
     
     // Create platform admin user
     const result = await authManager.createUser(
+      platformNestId,
       PLATFORM_ADMIN_EMAIL,
       PLATFORM_ADMIN_PASSWORD,
-      platformNestId,
       PLATFORM_ADMIN_NAME,
       'platform_admin'
     );
