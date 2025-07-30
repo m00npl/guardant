@@ -79,6 +79,8 @@ services:
       - BUN_CONFIG_NO_CLEAR_TERMINAL=1
       - DATABASE_URL=postgresql://guardant:guardant123@guardant-postgres:5432/guardant
       - REDIS_URL=redis://guardant-redis:6379
+      - REDIS_HOST=guardant-redis
+      - REDIS_PORT=6379
       - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
       - VAULT_ENABLED=true
       - VAULT_ADDR=http://guardant-vault:8200
@@ -117,6 +119,8 @@ services:
       - PORT=4001
       - DATABASE_URL=postgresql://guardant:guardant123@guardant-postgres:5432/guardant
       - REDIS_URL=redis://guardant-redis:6379
+      - REDIS_HOST=guardant-redis
+      - REDIS_PORT=6379
       - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
       - VAULT_ENABLED=true
       - VAULT_ADDR=http://guardant-vault:8200
@@ -164,6 +168,8 @@ services:
       - PORT=4002
       - DATABASE_URL=postgresql://guardant:guardant123@guardant-postgres:5432/guardant
       - REDIS_URL=redis://guardant-redis:6379
+      - REDIS_HOST=guardant-redis
+      - REDIS_PORT=6379
       - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
       - VAULT_ENABLED=true
       - VAULT_ADDR=http://guardant-vault:8200
