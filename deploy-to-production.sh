@@ -9,14 +9,13 @@ echo "🚀 GuardAnt Production Deployment"
 echo "================================="
 echo ""
 
-# Check if we're on production server
-if [ "$HOSTNAME" != "moon" ] && [ "$HOSTNAME" != "guardant" ]; then
-    echo "⚠️  Warning: This doesn't appear to be the production server"
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+# Production deployment confirmation
+echo "⚠️  You are about to deploy to production!"
+echo "This will rebuild and restart all services."
+read -p "Continue? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit 1
 fi
 
 # Function to check if service is healthy
