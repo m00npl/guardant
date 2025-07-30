@@ -21,14 +21,23 @@ echo ""
 USER_ID=$(echo -n "$EMAIL" | base64 | tr '+/' '-_' | tr -d '=')
 echo "🆔 User ID: $USER_ID"
 
-# Hash password using Docker container
+# Hash password using Docker container with proper async handling
 echo "🔐 Hashing password..."
-HASH=$(docker compose exec -T admin-api node -e "
+HASH=$(docker compose exec -T admin-api bun -e "
 const bcrypt = require('bcrypt');
-bcrypt.hash('$PASSWORD', 10).then(h => console.log(h));
-" | tail -1)
+(async () => {
+  const hash = await bcrypt.hash('$PASSWORD', 10);
+  console.log(hash);
+})();
+" 2>&1 | grep '\$2[aby]\$' | head -1 | tr -d '\r\n')
 
 echo "📝 Hash: $HASH"
+
+# Check if hash was generated
+if [ -z "$HASH" ]; then
+    echo "❌ Failed to generate password hash"
+    exit 1
+fi
 
 # Store in Vault
 echo "💾 Storing in Vault..."
