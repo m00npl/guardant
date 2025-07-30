@@ -293,9 +293,9 @@ workersApi.post('/registrations/:workerId/approve', async (c) => {
       await axios.put(
         `${rabbitmqMgmtUrl}/api/permissions/%2F/${workerUsername}`,
         {
-          configure: '^(worker_commands|worker_heartbeat|monitoring_workers|monitoring_results)$', // Can configure required exchanges/queues
-          write: '^(worker_commands|worker_heartbeat|monitoring_results)$', // Can write to specific exchanges
-          read: '^(monitoring_workers.*|worker\\..*|monitoring_results)$', // Can read from worker queues
+          configure: '^(worker_commands|worker_heartbeat|monitoring_workers.*|monitoring_results|worker\\..*|amq\\.gen-.*)$', // Can configure exchanges and queues
+          write: '^(worker_commands|worker_heartbeat|monitoring_workers.*|monitoring_results|worker\\..*|amq\\.gen-.*)$', // Can publish and write to queues
+          read: '^(monitoring_workers.*|worker\\..*|monitoring_results|amq\\.gen-.*)$', // Can read from queues
         },
         { auth: rabbitmqAuth }
       );
