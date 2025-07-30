@@ -73,10 +73,38 @@ check_health "postgres"
 check_health "redis"
 check_health "rabbitmq"
 
-# Initialize Vault (if needed)
-echo "🔐 Initializing and configuring Vault..."
+# Check Vault status
+echo "🔐 Checking Vault status..."
 sleep 5
-docker-compose exec -T vault /vault/scripts/init-vault.sh || echo "Vault initialization failed or already initialized"
+VAULT_STATUS=$(docker-compose exec -T vault vault status 2>/dev/null || echo "failed")
+
+if echo "$VAULT_STATUS" | grep -q "Sealed.*true"; then
+    echo "⚠️  Vault is sealed."
+    
+    # Check if we have unseal keys in environment
+    if [ -n "$VAULT_UNSEAL_KEY_1" ] && [ -n "$VAULT_UNSEAL_KEY_2" ] && [ -n "$VAULT_UNSEAL_KEY_3" ]; then
+        echo "🔓 Unsealing Vault with provided keys..."
+        ./unseal-vault.sh
+    else
+        echo "Please unseal it manually with your saved keys:"
+        echo "   docker-compose exec vault vault operator unseal <KEY1>"
+        echo "   docker-compose exec vault vault operator unseal <KEY2>"
+        echo "   docker-compose exec vault vault operator unseal <KEY3>"
+        echo ""
+        echo "Or provide keys as environment variables:"
+        echo "   export VAULT_UNSEAL_KEY_1=<KEY1>"
+        echo "   export VAULT_UNSEAL_KEY_2=<KEY2>"
+        echo "   export VAULT_UNSEAL_KEY_3=<KEY3>"
+        echo ""
+        echo "After unsealing, you can continue the deployment."
+        read -p "Press Enter when Vault is unsealed..." 
+    fi
+elif echo "$VAULT_STATUS" | grep -q "Initialized.*false"; then
+    echo "🚀 Initializing Vault for the first time..."
+    docker-compose exec -T vault /vault/scripts/init-vault.sh
+else
+    echo "✅ Vault is already initialized and unsealed"
+fi
 
 # Step 6: Run database migrations
 echo "📊 Step 6: Running database migrations..."
