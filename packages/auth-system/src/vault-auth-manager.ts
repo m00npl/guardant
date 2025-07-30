@@ -94,10 +94,15 @@ export class VaultAuthManager extends AuthManager {
     password: string,
     deviceInfo: { userAgent: string; ip: string }
   ): Promise<AuthResponse> {
+    console.log('🔐 VaultAuthManager.login called with email:', email);
     try {
       // Get user
       const user = await this.storage.getUserByEmail(email);
+      console.log('🔍 User found:', !!user);
+      console.log('🔍 User isActive:', user?.isActive);
+      
       if (!user || !user.isActive) {
+        console.log('❌ User not found or not active');
         await this.storage.createAuthAttempt({
           userId: user?.id || 'unknown',
           email,
@@ -136,8 +141,12 @@ export class VaultAuthManager extends AuthManager {
       }
 
       // Verify password from Vault
+      console.log('🔑 Verifying password from Vault for user:', user.id);
       const isValidPassword = await this.verifyPasswordFromVault(user.id, password);
+      console.log('✅ Password valid:', isValidPassword);
+      
       if (!isValidPassword) {
+        console.log('❌ Invalid password');
         await this.storage.createAuthAttempt({
           userId: user?.id || 'unknown',
           email,
