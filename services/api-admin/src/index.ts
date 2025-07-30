@@ -1002,6 +1002,11 @@ app.post('/api/admin/auth/login', async (c) => {
       });
 
       requestLogger.info('Login attempt', { email, userAgent, ip });
+      
+      console.log('🔐 DEBUG: About to call authManager.login');
+      console.log('🔐 DEBUG: authManager type:', authManager.constructor.name);
+      console.log('🔐 DEBUG: Email:', email);
+      console.log('🔐 DEBUG: Password length:', password?.length);
 
       // Authenticate user - trace this operation
       const authResult = await tracing.traceBusinessEvent('authentication', async (authSpan) => {
@@ -1009,10 +1014,13 @@ app.post('/api/admin/auth/login', async (c) => {
           'guardant.auth.email': email,
           'guardant.auth.method': 'password',
         });
-        return await authManager.login(email, password, {
+        console.log('🔐 DEBUG: Inside tracing, calling authManager.login...');
+        const result = await authManager.login(email, password, {
           userAgent,
           ip,
         });
+        console.log('🔐 DEBUG: authManager.login returned:', { success: result.success, error: result.error });
+        return result;
       });
 
       if (!authResult.success) {
