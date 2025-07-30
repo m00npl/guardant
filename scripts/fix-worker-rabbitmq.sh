@@ -13,9 +13,9 @@ PASSWORD=$(echo "$CONFIG" | jq -r '.workerPassword')
 
 echo "📝 Username: $USERNAME"
 
-# Update config with RabbitMQ URL
+# Update config with RabbitMQ URL (use local RabbitMQ)
 UPDATED_CONFIG=$(echo "$CONFIG" | jq \
-  --arg url "amqp://$USERNAME:$PASSWORD@guardant.me:5672" \
+  --arg url "amqp://$USERNAME:$PASSWORD@guardant-rabbitmq:5672" \
   '.rabbitmqUrl = $url')
 
 # Save updated config

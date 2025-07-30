@@ -312,6 +312,7 @@ workersApi.post('/registrations/:workerId/approve', async (c) => {
     config.approvedBy = user.email;
     config.workerUsername = workerUsername;
     config.workerPassword = workerPassword;
+    config.rabbitmqUrl = `amqp://${workerUsername}:${workerPassword}@${process.env.RABBITMQ_HOST || 'guardant.me'}:5672`;
     config.region = region;
     
     // Save updated config
