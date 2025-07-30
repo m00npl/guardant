@@ -36,6 +36,13 @@ RUN bun install
 # Set working directory to service
 WORKDIR /app/services/api-admin
 
+# Rebuild bcrypt for the container environment
+RUN cd /app/packages/auth-system && \
+    bun install && \
+    cd node_modules/bcrypt && \
+    bun install && \
+    echo "Bcrypt rebuilt for container"
+
 # Verify the file exists and show endpoints
 RUN echo "Checking if index.ts exists:" && ls -la src/index.ts && \
     echo "Checking for admin endpoints:" && \
