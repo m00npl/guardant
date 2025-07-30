@@ -768,7 +768,7 @@ workersApi.get('/regions', async (c) => {
       if (!registration?.approved) return;
       
       const region = heartbeat.region || registration.region || 'unknown';
-      const isActive = Date.now() - heartbeat.timestamp < 60000; // Active if heartbeat within 1 minute
+      const isActive = Date.now() - (heartbeat.lastSeen || heartbeat.timestamp || 0) < 60000; // Active if heartbeat within 1 minute
       
       if (!regionMap.has(region)) {
         regionMap.set(region, {
@@ -788,7 +788,7 @@ workersApi.get('/regions', async (c) => {
       regionData.workers.push({
         workerId,
         isActive,
-        lastSeen: heartbeat.timestamp,
+        lastSeen: heartbeat.lastSeen || heartbeat.timestamp || Date.now(),
         points: heartbeat.totalPoints || 0,
         jobs: heartbeat.checksCompleted || 0,
         owner: registration.ownerEmail
