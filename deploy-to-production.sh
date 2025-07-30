@@ -28,7 +28,7 @@ check_health() {
     echo -n "Waiting for $service to be healthy..."
     
     while [ $attempt -le $max_attempts ]; do
-        if docker-compose ps | grep -E "guardant-$service.*healthy|Up" > /dev/null 2>&1; then
+        if docker compose ps | grep -E "guardant-$service.*healthy|Up" > /dev/null 2>&1; then
             echo " ✅"
             return 0
         fi
@@ -58,15 +58,15 @@ fi
 
 # Step 3: Build services
 echo "🏗️  Step 3: Building services..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Step 4: Stop current services
 echo "🛑 Step 4: Stopping current services..."
-docker-compose down
+docker compose down
 
 # Step 5: Start infrastructure services
 echo "🚀 Step 5: Starting infrastructure services..."
-docker-compose up -d postgres redis rabbitmq vault
+docker compose up -d postgres redis rabbitmq vault
 
 # Wait for infrastructure
 check_health "postgres"
@@ -76,7 +76,7 @@ check_health "rabbitmq"
 # Check Vault status
 echo "🔐 Checking Vault status..."
 sleep 5
-VAULT_STATUS=$(docker-compose exec -T vault vault status 2>/dev/null || echo "failed")
+VAULT_STATUS=$(docker compose exec -T vault vault status 2>/dev/null || echo "failed")
 
 if echo "$VAULT_STATUS" | grep -q "Sealed.*true"; then
     echo "⚠️  Vault is sealed and needs to be unsealed to continue."
@@ -87,7 +87,7 @@ if echo "$VAULT_STATUS" | grep -q "Sealed.*true"; then
     echo "   ./unseal-vault.sh"
     echo ""
     echo "2. Unseal manually in another terminal:"
-    echo "   docker-compose exec vault vault operator unseal"
+    echo "   docker compose exec vault vault operator unseal"
     echo "   (repeat 3 times with different keys)"
     echo ""
     read -p "Press 'u' to use unseal script, or Enter when manually unsealed: " choice
@@ -97,22 +97,22 @@ if echo "$VAULT_STATUS" | grep -q "Sealed.*true"; then
     fi
 elif echo "$VAULT_STATUS" | grep -q "Initialized.*false"; then
     echo "🚀 Initializing Vault for the first time..."
-    docker-compose exec -T vault /vault/scripts/init-vault.sh
+    docker compose exec -T vault /vault/scripts/init-vault.sh
 else
     echo "✅ Vault is already initialized and unsealed"
 fi
 
 # Step 6: Run database migrations
 echo "📊 Step 6: Running database migrations..."
-docker-compose run --rm admin-api bun run migrate
+docker compose run --rm admin-api bun run migrate
 
 # Step 7: Create platform admin (if needed)
 echo "👤 Step 7: Creating platform admin..."
-docker-compose run --rm admin-api bun run scripts/create-platform-admin.ts
+docker compose run --rm admin-api bun run scripts/create-platform-admin.ts
 
 # Step 8: Start all services
 echo "🚀 Step 8: Starting all services..."
-docker-compose up -d
+docker compose up -d
 
 # Step 9: Wait for services to be healthy
 echo "🏥 Step 9: Checking service health..."
@@ -150,7 +150,7 @@ echo ""
 echo "🎉 Deployment completed!"
 echo ""
 echo "📋 Service Status:"
-docker-compose ps
+docker compose ps
 
 echo ""
 echo "🔗 Access URLs:"
