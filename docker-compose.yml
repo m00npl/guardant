@@ -93,13 +93,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/app/deployment
     depends_on:
-      guardant-postgres:
+      postgres:
         condition: service_healthy
-      guardant-redis:
+      redis:
         condition: service_healthy
-      guardant-rabbitmq:
+      rabbitmq:
         condition: service_healthy
-      guardant-vault:
+      vault:
         condition: service_started
     restart: on-failure:3
     networks:
@@ -123,13 +123,13 @@ services:
       - VAULT_TOKEN=${VAULT_TOKEN:-}
     # No additional volumes needed
     depends_on:
-      guardant-postgres:
+      postgres:
         condition: service_healthy
-      guardant-redis:
+      redis:
         condition: service_healthy
-      guardant-rabbitmq:
+      rabbitmq:
         condition: service_healthy
-      guardant-vault:
+      vault:
         condition: service_started
     restart: unless-stopped
     networks:
@@ -145,9 +145,9 @@ services:
       - REDIS_URL=redis://guardant-redis:6379
       - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
     depends_on:
-      guardant-redis:
+      redis:
         condition: service_healthy
-      guardant-rabbitmq:
+      rabbitmq:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -174,13 +174,13 @@ services:
       - RESTORE_MONITORING=false  # Scheduler handles this now
     # No additional volumes needed
     depends_on:
-      guardant-postgres:
+      postgres:
         condition: service_healthy
-      guardant-redis:
+      redis:
         condition: service_healthy
-      guardant-rabbitmq:
+      rabbitmq:
         condition: service_healthy
-      guardant-vault:
+      vault:
         condition: service_started
       monitoring-scheduler:
         condition: service_started
