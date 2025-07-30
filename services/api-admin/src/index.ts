@@ -1097,6 +1097,28 @@ app.post('/api/admin/auth/refresh', async (c) => {
   }
 });
 
+// Session check endpoint
+app.get('/api/admin/auth/check', authMiddleware, async (c) => {
+  try {
+    const user = getAuthUser(c);
+    if (!user) {
+      return c.json<ApiResponse>({ success: false, error: 'Not authenticated' }, 401);
+    }
+
+    return c.json<ApiResponse>({
+      success: true,
+      data: { 
+        valid: true,
+        userId: user.id,
+        nestId: user.nestId,
+        email: user.email
+      }
+    });
+  } catch (error: any) {
+    return c.json<ApiResponse>({ success: false, error: error.message }, 500);
+  }
+});
+
 // Logout endpoint
 app.post('/api/admin/auth/logout', authMiddleware, async (c) => {
   try {

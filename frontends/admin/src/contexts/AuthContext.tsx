@@ -73,6 +73,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  // Check session periodically
+  useEffect(() => {
+    if (!user) return;
+
+    const checkSession = async () => {
+      try {
+        // Make a lightweight request to check if session is still valid
+        await axios.get(`${API_URL}/auth/check`);
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          // Session expired - logout and redirect
+          toast.error('Your session has expired. Please log in again.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('userData');
+          setUser(null);
+          window.location.href = '/admin/login';
+        }
+      }
+    };
+
+    // Check session every 5 minutes
+    const interval = setInterval(checkSession, 5 * 60 * 1000);
+    
+    // Also check when window regains focus after being inactive
+    const handleFocus = () => {
+      checkSession();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user]);
+
   const fetchProfile = async () => {
     try {
       const response = await axios.post(`${API_URL}/nest/profile`);
