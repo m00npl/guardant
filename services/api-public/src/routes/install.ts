@@ -23,22 +23,9 @@ echo ""
 
 # Get owner email if not provided
 if [ -z "\$OWNER_EMAIL" ]; then
-    # Check if we're being piped from curl
-    if [ -t 0 ]; then
-        # Interactive mode - can read from terminal
-        read -p "📧 Please enter your email address: " OWNER_EMAIL
-    else
-        # Non-interactive mode - provide instructions
-        echo "❌ Email address required for installation"
-        echo ""
-        echo "Please run with email:"
-        echo "  OWNER_EMAIL=your@email.com curl -sSL https://guardant.me/install | bash"
-        echo ""
-        echo "Or download and run locally:"
-        echo "  curl -sSL https://guardant.me/install > install.sh"
-        echo "  bash install.sh"
-        exit 1
-    fi
+    # Read from /dev/tty to work even when piped
+    echo -n "📧 Please enter your email address: "
+    read OWNER_EMAIL < /dev/tty
     
     # Basic email validation
     if ! echo "\$OWNER_EMAIL" | grep -qE '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'; then
