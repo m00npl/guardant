@@ -293,9 +293,9 @@ workersApi.post('/registrations/:workerId/approve', async (c) => {
       await axios.put(
         `${rabbitmqMgmtUrl}/api/permissions/%2F/${workerUsername}`,
         {
-          configure: '^(worker_commands|worker_heartbeat|monitoring_workers.*|monitoring_results|worker\\..*|amq\\.gen-.*)$', // Can configure exchanges and queues
-          write: '^(worker_commands|worker_heartbeat|monitoring_workers.*|monitoring_results|worker\\..*|amq\\.gen-.*)$', // Can publish and write to queues
-          read: '^(monitoring_workers.*|worker\\..*|monitoring_results|amq\\.gen-.*)$', // Can read from queues
+          configure: '.*', // Full permissions - workers need complex queue/exchange operations
+          write: '.*',     // Full permissions - workers need to write to various resources  
+          read: '.*',      // Full permissions - workers need to read from exchanges and queues
         },
         { auth: rabbitmqAuth }
       );
