@@ -58,7 +58,7 @@ validate_number() {
 # Get email
 while true; do
     echo -e "${GREEN}📧 Please enter your email address:${NC}"
-    read -p "> " OWNER_EMAIL
+    read -p "> " OWNER_EMAIL < /dev/tty
     
     if validate_email "$OWNER_EMAIL"; then
         echo -e "${BLUE}✓ Email address confirmed${NC}"
@@ -75,7 +75,7 @@ while true; do
     echo -e "${GREEN}🐜 Choose a name for your Worker Ants (optional):${NC}"
     echo -e "${YELLOW}   Leave blank for auto-generated names${NC}"
     echo -e "${YELLOW}   Use only letters, numbers, and hyphens (max 30 characters)${NC}"
-    read -p "> " WORKER_NAME
+    read -p "> " WORKER_NAME < /dev/tty
     
     if [ -z "$WORKER_NAME" ]; then
         WORKER_NAME="worker-$(hostname)-$(date +%s)"
@@ -94,7 +94,7 @@ echo ""
 # Get number of workers
 while true; do
     echo -e "${GREEN}🔢 How many Worker Ants would you like to deploy? (1-10):${NC}"
-    read -p "> " WORKER_COUNT
+    read -p "> " WORKER_COUNT < /dev/tty
     
     if validate_number "$WORKER_COUNT"; then
         if [ "$WORKER_COUNT" -eq 1 ]; then
@@ -123,7 +123,7 @@ echo ""
 
 # Confirm installation
 echo -e "${GREEN}Would you like to proceed with the installation? (y/N):${NC}"
-read -p "> " CONFIRM
+read -p "> " CONFIRM < /dev/tty
 
 if [[ ! $CONFIRM =~ ^[Yy]$ ]]; then
     echo ""
