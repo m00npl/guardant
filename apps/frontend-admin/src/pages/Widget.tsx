@@ -248,12 +248,12 @@ export const Widget: React.FC = () => {
                     }}
                     className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <span className=\"ml-2 text-sm text-gray-700 font-medium\">All Services</span>
+                  <span className="ml-2 text-sm text-gray-700 font-medium">All Services</span>
                 </label>
                 {widgetData.availableServices.map((service) => (
-                  <label key={service.id} className=\"flex items-center\">
+                  <label key={service.id} className="flex items-center">
                     <input
-                      type=\"checkbox\"
+                      type="checkbox"
                       checked={config.services.includes(service.id)}
                       onChange={(e) => {
                         if (e.target.checked) {
@@ -266,10 +266,10 @@ export const Widget: React.FC = () => {
                           });
                         }
                       }}
-                      className=\"rounded border-gray-300 text-indigo-600 focus:ring-indigo-500\"
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
-                    <span className=\"ml-2 text-sm text-gray-700\">{service.name}</span>
-                    <span className=\"ml-1 text-xs text-gray-500\">({service.type})</span>
+                    <span className="ml-2 text-sm text-gray-700">{service.name}</span>
+                    <span className="ml-1 text-xs text-gray-500">({service.type})</span>
                   </label>
                 ))}
               </div>
@@ -278,19 +278,19 @@ export const Widget: React.FC = () => {
         </div>
 
         {/* Preview Panel */}
-        <div className=\"bg-white rounded-lg border border-gray-200 p-6\">
-          <h2 className=\"text-lg font-medium text-gray-900 mb-4\">Preview</h2>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Preview</h2>
           
           <div 
-            className=\"border border-gray-200 rounded-lg p-4 bg-gray-50\"
+            className="border border-gray-200 rounded-lg p-4 bg-gray-50"
             style={{ minHeight: '200px' }}
           >
             {previewHtml ? (
               <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
             ) : (
-              <div className=\"flex items-center justify-center h-32 text-gray-500\">
-                <div className=\"animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600\"></div>
-                <span className=\"ml-2\">Generating preview...</span>
+              <div className="flex items-center justify-center h-32 text-gray-500">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                <span className="ml-2">Generating preview...</span>
               </div>
             )}
           </div>
@@ -298,10 +298,10 @@ export const Widget: React.FC = () => {
       </div>
 
       {/* Embed Code Section */}
-      <div className=\"bg-white rounded-lg border border-gray-200 p-6\">
-        <div className=\"flex items-center justify-between mb-4\">
-          <h2 className=\"text-lg font-medium text-gray-900\">Embed Code</h2>
-          <div className=\"flex border border-gray-200 rounded-lg p-1\">
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-900">Embed Code</h2>
+          <div className="flex border border-gray-200 rounded-lg p-1">
             <button
               onClick={() => setActiveTab('javascript')}
               className={`px-3 py-1 text-sm rounded-md ${
@@ -325,8 +325,8 @@ export const Widget: React.FC = () => {
           </div>
         </div>
 
-        <div className=\"relative\">
-          <pre className=\"bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm\">
+        <div className="relative">
+          <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
             <code>
               {activeTab === 'javascript' ? widgetData.embedCode : widgetData.iframeCode}
             </code>
@@ -335,23 +335,23 @@ export const Widget: React.FC = () => {
             onClick={() => copyToClipboard(
               activeTab === 'javascript' ? widgetData.embedCode : widgetData.iframeCode
             )}
-            className=\"absolute top-2 right-2 px-3 py-1 bg-gray-700 text-white text-sm rounded hover:bg-gray-600\"
+            className="absolute top-2 right-2 px-3 py-1 bg-gray-700 text-white text-sm rounded hover:bg-gray-600"
           >
             Copy
           </button>
         </div>
 
-        <div className=\"mt-4 space-y-2 text-sm text-gray-600\">
-          <h3 className=\"font-medium text-gray-900\">Integration Notes:</h3>
+        <div className="mt-4 space-y-2 text-sm text-gray-600">
+          <h3 className="font-medium text-gray-900">Integration Notes:</h3>
           {activeTab === 'javascript' ? (
-            <ul className=\"list-disc list-inside space-y-1\">
+            <ul className="list-disc list-inside space-y-1">
               <li>The widget automatically updates every minute</li>
               <li>Supports real-time status changes</li>
               <li>Lightweight and fast loading</li>
               <li>Responsive design adapts to container width</li>
             </ul>
           ) : (
-            <ul className=\"list-disc list-inside space-y-1\">
+            <ul className="list-disc list-inside space-y-1">
               <li>More isolated from your site's CSS</li>
               <li>Fixed height (adjust as needed)</li>  
               <li>May have slower loading times</li>
@@ -362,4 +362,4 @@ export const Widget: React.FC = () => {
       </div>
     </div>
   );
-};"
+}
