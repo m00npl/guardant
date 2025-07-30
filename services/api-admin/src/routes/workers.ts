@@ -691,7 +691,7 @@ workersApi.get('/owners/summary', async (c) => {
 // Get pending worker registrations
 workersApi.get('/registrations/pending', async (c) => {
   try {
-    const registrations = await redis.hgetall('worker:registrations');
+    const registrations = await redis.hgetall('workers:registrations');
     
     const pending = Object.entries(registrations)
       .map(([workerId, data]) => {
@@ -715,7 +715,7 @@ workersApi.get('/registrations/pending', async (c) => {
 workersApi.get('/registrations/approved', async (c) => {
   try {
     // Get all registrations
-    const registrations = await redis.hgetall('worker:registrations');
+    const registrations = await redis.hgetall('workers:registrations');
     const heartbeats = await redis.hgetall('workers:heartbeat');
     
     const approved = Object.entries(registrations)
