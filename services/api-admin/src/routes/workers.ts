@@ -730,7 +730,7 @@ workersApi.get('/registrations/approved', async (c) => {
         return {
           workerId,
           ...registration,
-          lastHeartbeat: heartbeat?.timestamp,
+          lastHeartbeat: heartbeat?.lastSeen,
           version: heartbeat?.version,
           points: heartbeat?.totalPoints || 0,
         };
