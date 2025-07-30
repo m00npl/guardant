@@ -688,4 +688,60 @@ workersApi.get('/owners/summary', async (c) => {
   }
 });
 
+// Get pending worker registrations
+workersApi.get('/registrations/pending', async (c) => {
+  try {
+    const registrations = await redis.hgetall('worker:registrations');
+    
+    const pending = Object.entries(registrations)
+      .map(([workerId, data]) => {
+        const registration = JSON.parse(data);
+        return registration.approved ? null : {
+          workerId,
+          ...registration
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.registeredAt - a.registeredAt);
+    
+    return c.json({ success: true, pending });
+  } catch (error) {
+    logger.error('Failed to get pending registrations', error);
+    return c.json({ error: 'Failed to get registrations' }, 500);
+  }
+});
+
+// Get approved workers with heartbeat data
+workersApi.get('/registrations/approved', async (c) => {
+  try {
+    // Get all registrations
+    const registrations = await redis.hgetall('worker:registrations');
+    const heartbeats = await redis.hgetall('workers:heartbeat');
+    
+    const approved = Object.entries(registrations)
+      .map(([workerId, data]) => {
+        const registration = JSON.parse(data);
+        if (!registration.approved) return null;
+        
+        // Merge with heartbeat data if available
+        const heartbeat = heartbeats[workerId] ? JSON.parse(heartbeats[workerId]) : null;
+        
+        return {
+          workerId,
+          ...registration,
+          lastHeartbeat: heartbeat?.timestamp,
+          version: heartbeat?.version,
+          points: heartbeat?.totalPoints || 0,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.approvedAt - a.approvedAt);
+    
+    return c.json({ success: true, approved });
+  } catch (error) {
+    logger.error('Failed to get approved workers', error);
+    return c.json({ error: 'Failed to get workers' }, 500);
+  }
+});
+
 export { workersApi };
