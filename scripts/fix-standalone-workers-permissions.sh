@@ -11,11 +11,11 @@ WORKERS=(
 
 # Permissions pattern
 # Configure: can declare exchanges and queues
-CONFIGURE='^(worker_commands|worker_heartbeat|monitoring_workers.*|monitoring_results|worker\..*|amq\.gen-.*)$'
+CONFIGURE='.*'  # Allow all - workers need to create temporary queues
 # Write: can publish to exchanges and write to queues
-WRITE='^(worker_commands|worker_heartbeat|monitoring_workers.*|monitoring_results|worker\..*|amq\.gen-.*)$'
-# Read: can consume from queues
-READ='^(monitoring_workers.*|worker\..*|monitoring_results|amq\.gen-.*)$'
+WRITE='.*'      # Allow all - workers need to write to various queues
+# Read: can consume from queues and read from exchanges  
+READ='.*'       # Allow all - workers need to read from exchanges and queues
 
 for WORKER in "${WORKERS[@]}"; do
     echo "Setting permissions for: $WORKER"
