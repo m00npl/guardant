@@ -1,12 +1,14 @@
 // GuardAnt UI Components
 // Shared React components for the GuardAnt platform
 
+import React from 'react';
+
 export const AntButton = ({ children, ...props }: any) => {
-  return <button {...props}>{children}</button>;
+  return React.createElement('button', props, children);
 };
 
 export const AntCard = ({ children, ...props }: any) => {
-  return <div className="ant-card" {...props}>{children}</div>;
+  return React.createElement('div', { className: 'ant-card', ...props }, children);
 };
 
 // Export all components

@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Nest } from '@guardant/shared-types'
+
+// Local type definition instead of importing from workspace
+interface Nest {
+  id: string
+  name: string
+  subdomain: string
+  subscription: {
+    tier: string
+    servicesLimit: number
+  }
+}
 
 interface AuthState {
   isAuthenticated: boolean
