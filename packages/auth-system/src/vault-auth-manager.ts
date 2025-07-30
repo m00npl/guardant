@@ -150,8 +150,15 @@ export class VaultAuthManager extends AuthManager {
         return { success: false, error: 'Invalid credentials' };
       }
 
-      // Clear failed attempts on successful login
-      await this.clearFailedAttempts(email);
+      // Record successful login attempt
+      await this.storage.createAuthAttempt({
+        userId: user.id,
+        email,
+        ip: deviceInfo.ip,
+        userAgent: deviceInfo.userAgent,
+        timestamp: Date.now(),
+        success: true,
+      });
 
       // Check for 2FA
       if (user.twoFactorEnabled) {
