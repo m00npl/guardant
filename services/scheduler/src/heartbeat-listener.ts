@@ -37,7 +37,7 @@ export async function startHeartbeatListener(channel: amqp.Channel) {
           })
         );
         
-        logger.debug('💓 Received heartbeat', { workerId, version, region });
+        logger.info('💓 Received heartbeat', { workerId, version, region, checksCompleted });
         
         channel.ack(msg);
       } catch (error) {
