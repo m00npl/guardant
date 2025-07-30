@@ -5,18 +5,17 @@ FROM oven/bun:1 as builder
 WORKDIR /app
 
 # Copy package files
-COPY frontends/admin/package*.json ./
-COPY frontends/admin/tsconfig*.json ./
-COPY frontends/admin/vite.config.ts ./
-COPY frontends/admin/postcss.config.js ./
-COPY frontends/admin/tailwind.config.js ./
+COPY apps/frontend-admin/package*.json ./
+COPY apps/frontend-admin/tsconfig*.json ./
+COPY apps/frontend-admin/vite.config.ts ./
+COPY apps/frontend-admin/tailwind.config.js ./
 
 # Install dependencies
 RUN bun install
 
 # Copy source files
-COPY frontends/admin/index.html ./
-COPY frontends/admin/src ./src
+COPY apps/frontend-admin/index.html ./
+COPY apps/frontend-admin/src ./src
 
 # Build the application
 RUN bun run build
@@ -24,11 +23,11 @@ RUN bun run build
 # Stage 2: Serve
 FROM nginx:alpine
 
-# Copy nginx configuration
-COPY frontends/admin/nginx.conf /etc/nginx/conf.d/default.conf
-
 # Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration if exists
+COPY apps/frontend-admin/nginx.conf /etc/nginx/conf.d/default.conf || echo "No custom nginx config"
 
 # Expose port 80
 EXPOSE 80
