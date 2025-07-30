@@ -98,25 +98,55 @@ export class VaultAuthManager extends AuthManager {
       // Get user
       const user = await this.storage.getUserByEmail(email);
       if (!user || !user.isActive) {
-        await this.recordFailedAttempt(email, deviceInfo.ip);
+        await this.storage.createAuthAttempt({
+          userId: user?.id || 'unknown',
+          email,
+          ip: deviceInfo.ip,
+          userAgent: deviceInfo.userAgent,
+          timestamp: Date.now(),
+          success: false,
+          failureReason: 'Invalid credentials',
+        });
         return { success: false, error: 'Invalid credentials' };
       }
 
-      // Check lockout
-      const lockoutStatus = await this.checkAccountLockout(email);
-      if (lockoutStatus.isLocked) {
+      // Check rate limiting
+      const recentAttempts = await this.storage.getAuthAttempts(
+        email,
+        Date.now() - this.config.rateLimiting.loginAttempts.windowMs
+      );
+
+      const failedAttempts = recentAttempts.filter(a => !a.success);
+      if (failedAttempts.length >= this.config.rateLimiting.loginAttempts.maxAttempts) {
+        await this.storage.createAuthAttempt({
+          userId: user?.id || 'unknown',
+          email,
+          ip: deviceInfo.ip,
+          userAgent: deviceInfo.userAgent,
+          timestamp: Date.now(),
+          success: false,
+          failureReason: 'Invalid credentials',
+        });
         return {
           success: false,
-          error: 'Account is locked due to too many failed attempts',
+          error: 'Too many failed attempts. Please try again later.',
           isAccountLocked: true,
-          lockoutExpiresAt: lockoutStatus.expiresAt,
+          lockoutExpiresAt: Date.now() + this.config.security.lockoutDuration * 1000,
         };
       }
 
       // Verify password from Vault
       const isValidPassword = await this.verifyPasswordFromVault(user.id, password);
       if (!isValidPassword) {
-        await this.recordFailedAttempt(email, deviceInfo.ip);
+        await this.storage.createAuthAttempt({
+          userId: user?.id || 'unknown',
+          email,
+          ip: deviceInfo.ip,
+          userAgent: deviceInfo.userAgent,
+          timestamp: Date.now(),
+          success: false,
+          failureReason: 'Invalid credentials',
+        });
         return { success: false, error: 'Invalid credentials' };
       }
 
