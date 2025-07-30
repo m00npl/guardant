@@ -53,7 +53,7 @@ if [[ "$EXISTS" == *"0"* ]]; then
     echo "📝 Creating admin user in Redis..."
     
     # Create user JSON
-    USER_JSON="{\"id\":\"$USER_ID\",\"email\":\"$EMAIL\",\"role\":\"admin\",\"nestId\":\"platform\",\"permissions\":{\"manageNests\":true,\"manageUsers\":true,\"manageWorkers\":true,\"viewAnalytics\":true,\"managePayments\":true,\"managePlatform\":true},\"createdAt\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\",\"updatedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"}"
+    USER_JSON="{\"id\":\"$USER_ID\",\"email\":\"$EMAIL\",\"role\":\"admin\",\"nestId\":\"platform\",\"isActive\":true,\"permissions\":{\"manageNests\":true,\"manageUsers\":true,\"manageWorkers\":true,\"viewAnalytics\":true,\"managePayments\":true,\"managePlatform\":true},\"createdAt\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\",\"updatedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"}"
     
     # Store in Redis
     docker compose exec redis redis-cli SET "auth:user:$USER_ID" "$USER_JSON" > /dev/null
