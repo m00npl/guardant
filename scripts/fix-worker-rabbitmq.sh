@@ -19,10 +19,14 @@ else
     echo "📝 Username: $USERNAME"
 fi
 
-# Update config with RabbitMQ URL (use local RabbitMQ)
+# Get server IP or use environment variable
+RABBITMQ_HOST="${RABBITMQ_PUBLIC_HOST:-guardant.me}"
+echo "🌐 Using RabbitMQ host: $RABBITMQ_HOST"
+
+# Update config with RabbitMQ URL (use public address)
 # Also ensure username is set
 UPDATED_CONFIG=$(echo "$CONFIG" | jq \
-  --arg url "amqp://$USERNAME:$PASSWORD@guardant-rabbitmq:5672" \
+  --arg url "amqp://$USERNAME:$PASSWORD@$RABBITMQ_HOST:5672" \
   --arg username "$USERNAME" \
   '.rabbitmqUrl = $url | .workerUsername = $username')
 
