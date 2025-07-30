@@ -10,7 +10,7 @@ export const Layout: React.FC = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-    { name: 'Services', href: '/services', icon: '🔍' },
+    { name: 'Watchers', href: '/services', icon: '👁️' },
     { name: 'Subscription', href: '/subscription', icon: '💳' },
     { name: 'Settings', href: '/settings', icon: '⚙️' },
   ];

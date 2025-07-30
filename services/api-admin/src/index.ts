@@ -281,6 +281,9 @@ const keys = {
   nestPassword: (nestId: string) => `nest:password:${nestId}`,
   services: (nestId: string) => `services:${nestId}`,
   serviceStatus: (nestId: string, serviceId: string) => `status:${nestId}:${serviceId}`,
+  serviceMetrics: (nestId: string, serviceId: string) => `metrics:${nestId}:${serviceId}`,
+  serviceHistory: (nestId: string, serviceId: string, date: string) => `history:${nestId}:${serviceId}:${date}`,
+  incidentHistory: (nestId: string) => `incidents:${nestId}`,
 };
 
 // Hybrid Redis + Golem L3 storage implementation
@@ -475,6 +478,7 @@ const rabbitmqService = {
     
     if (currentStatus) {
       const serviceStatus = JSON.parse(currentStatus);
+      const previousStatus = serviceStatus.status;
       
       // Update overall service status
       serviceStatus.status = status;
@@ -494,6 +498,74 @@ const rabbitmqService = {
       }
       
       await redis.set(statusKey, JSON.stringify(serviceStatus));
+      
+      // Store metrics for historical data
+      const metricsKey = keys.serviceMetrics(nestId, serviceId);
+      const metrics = {
+        timestamp,
+        status,
+        responseTime,
+        regionId,
+      };
+      
+      // Store in sorted set for time-series data (keep last 24 hours)
+      await redis.zadd(metricsKey, timestamp, JSON.stringify(metrics));
+      await redis.zremrangebyscore(metricsKey, '-inf', timestamp - 24 * 60 * 60 * 1000);
+      
+      // Store daily aggregated history
+      const date = new Date(timestamp).toISOString().split('T')[0];
+      const historyKey = keys.serviceHistory(nestId, serviceId, date);
+      const historyData = await redis.get(historyKey) || '{}';
+      const history = JSON.parse(historyData);
+      
+      if (!history.checks) history.checks = 0;
+      if (!history.totalResponseTime) history.totalResponseTime = 0;
+      if (!history.uptime) history.uptime = 0;
+      if (!history.downtime) history.downtime = 0;
+      
+      history.checks++;
+      history.totalResponseTime += responseTime || 0;
+      
+      if (status === 'up') {
+        history.uptime++;
+      } else {
+        history.downtime++;
+      }
+      
+      history.avgResponseTime = Math.round(history.totalResponseTime / history.checks);
+      history.uptimePercentage = Math.round((history.uptime / history.checks) * 100);
+      
+      await redis.setex(historyKey, 7 * 24 * 60 * 60, JSON.stringify(history)); // Keep for 7 days
+      
+      // Track incidents
+      if (previousStatus === 'up' && status === 'down') {
+        // New incident started
+        const incidentKey = keys.incidentHistory(nestId);
+        const incident = {
+          id: `incident-${Date.now()}`,
+          serviceId,
+          startTime: timestamp,
+          status: 'active',
+          regionId,
+          error: error || 'Service is down',
+        };
+        await redis.zadd(incidentKey, timestamp, JSON.stringify(incident));
+      } else if (previousStatus === 'down' && status === 'up') {
+        // Incident resolved
+        const incidentKey = keys.incidentHistory(nestId);
+        const incidents = await redis.zrange(incidentKey, -10, -1);
+        
+        for (const incidentData of incidents) {
+          const incident = JSON.parse(incidentData);
+          if (incident.serviceId === serviceId && incident.status === 'active') {
+            incident.status = 'resolved';
+            incident.endTime = timestamp;
+            incident.duration = timestamp - incident.startTime;
+            await redis.zadd(incidentKey, incident.startTime, JSON.stringify(incident));
+            break;
+          }
+        }
+      }
       
       // Publish SSE update to Public API
       await redis.publish(`sse:${nestId}`, JSON.stringify({
@@ -1658,17 +1730,81 @@ app.post('/api/admin/dashboard/stats', async (c) => {
     const totalWatchers = services.length;
     const activeWatchers = services.filter(s => s.isActive).length;
     
-    // TODO: Get real metrics from monitoring data
+    // Get real monitoring data from Redis
+    let incidents = 0;
+    let totalResponseTime = 0;
+    let totalChecks = 0;
+    let totalUptime = 0;
+    let activeColonies = 0;
+    
+    // Process each service to get real metrics
+    for (const service of services) {
+      if (!service.isActive) continue;
+      
+      // Get service status from Redis
+      const statusKey = keys.serviceStatus(service.nestId, service.id);
+      const statusData = await redis.get(statusKey);
+      
+      if (statusData) {
+        try {
+          const status = JSON.parse(statusData);
+          
+          // Count incidents (services that are down or degraded)
+          if (status.status === 'down' || status.status === 'degraded') {
+            incidents++;
+          }
+          
+          // Calculate average response time
+          if (status.responseTime && status.responseTime > 0) {
+            totalResponseTime += status.responseTime;
+            totalChecks++;
+          }
+          
+          // Count active regions for this service
+          if (status.regions && Array.isArray(status.regions)) {
+            activeColonies += status.regions.filter((r: any) => r.status === 'up').length;
+          }
+          
+          // Calculate uptime (simplified - percentage of services that are up)
+          if (status.status === 'up') {
+            totalUptime++;
+          }
+        } catch (error) {
+          console.error('Error parsing service status:', error);
+        }
+      }
+    }
+    
+    // Get worker count from Redis
+    const workers = await redis.hgetall('workers:heartbeat');
+    let busyWorkerAnts = 0;
+    
+    Object.values(workers).forEach(data => {
+      try {
+        const worker = JSON.parse(data);
+        const isAlive = (Date.now() - worker.lastSeen) < 60000; // 1 minute timeout
+        if (isAlive) {
+          busyWorkerAnts++;
+        }
+      } catch (error) {
+        console.error('Error parsing worker data:', error);
+      }
+    });
+    
+    // Calculate final metrics
+    const avgResponseTime = totalChecks > 0 ? Math.round(totalResponseTime / totalChecks) : 0;
+    const uptime = activeWatchers > 0 ? Math.round((totalUptime / activeWatchers) * 100) : 100;
+    
     const stats = {
       totalWatchers,
       activeWatchers,
       totalServices: totalWatchers, // Alias for frontend compatibility
       activeServices: activeWatchers, // Alias for frontend compatibility
-      incidents: 0,
-      avgResponseTime: 0,
-      uptime: 100,
-      activeColonies: services.reduce((acc, s) => acc + (s.monitoring?.regions?.length || 0), 0),
-      busyWorkerAnts: 0,
+      incidents,
+      avgResponseTime,
+      uptime,
+      activeColonies,
+      busyWorkerAnts,
     };
 
     return c.json<ApiResponse>({
@@ -1784,17 +1920,52 @@ app.post('/api/admin/widget/preview', async (c) => {
 
 // WorkerAnt status
 app.post('/api/admin/worker-ants/status', async (c) => {
-  // TODO: Get real WorkerAnt data from Redis
-  const mockWorkerAnts = [
-    { region: 'eu-west-1', count: 12, activeJobs: 156 },
-    { region: 'us-east-1', count: 24, activeJobs: 287 },
-    { region: 'ap-southeast-1', count: 0, activeJobs: 0 },
-  ];
-
-  return c.json<ApiResponse>({
-    success: true,
-    data: mockWorkerAnts
-  });
+  try {
+    // Get worker heartbeats from Redis
+    const workers = await redis.hgetall('workers:heartbeat');
+    
+    // Group workers by region
+    const workersByRegion: Record<string, { count: number; activeJobs: number }> = {};
+    
+    // Initialize all regions with 0 counts
+    availableRegions.forEach(region => {
+      workersByRegion[region.id] = { count: 0, activeJobs: 0 };
+    });
+    
+    // Count active workers per region
+    Object.entries(workers).forEach(([id, data]) => {
+      try {
+        const worker = JSON.parse(data);
+        const isAlive = (Date.now() - worker.lastSeen) < 60000; // 1 minute timeout
+        
+        if (isAlive && worker.region) {
+          if (!workersByRegion[worker.region]) {
+            workersByRegion[worker.region] = { count: 0, activeJobs: 0 };
+          }
+          workersByRegion[worker.region].count++;
+          // Active jobs are the number of checks completed in the last minute
+          workersByRegion[worker.region].activeJobs += worker.checksCompleted || 0;
+        }
+      } catch (error) {
+        console.error('Error parsing worker data:', error);
+      }
+    });
+    
+    // Convert to array format
+    const workerAnts = Object.entries(workersByRegion).map(([region, data]) => ({
+      region,
+      count: data.count,
+      activeJobs: data.activeJobs
+    }));
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: workerAnts
+    });
+  } catch (error: any) {
+    console.error('Error getting worker status:', error);
+    return c.json<ApiResponse>({ success: false, error: error.message }, 500);
+  }
 });
 
 } // End of registerApiEndpoints function

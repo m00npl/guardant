@@ -12,9 +12,17 @@ interface Service {
   target: string;
   interval: number;
   isActive: boolean;
-  status?: 'up' | 'down' | 'unknown';
+  status?: 'up' | 'down' | 'unknown' | 'degraded' | 'maintenance';
   responseTime?: number;
   lastChecked?: string;
+  monitoring?: {
+    regions: string[];
+    strategy: 'closest' | 'all-selected' | 'round-robin' | 'failover';
+  };
+  notifications?: {
+    webhooks: string[];
+    emails: string[];
+  };
 }
 
 export const ServicesPage: React.FC = () => {
@@ -39,14 +47,14 @@ export const ServicesPage: React.FC = () => {
   };
 
   const handleDelete = async (serviceId: string) => {
-    if (!confirm('Are you sure you want to delete this service?')) return;
+    if (!confirm('Are you sure you want to delete this watcher?')) return;
 
     try {
-      await axios.post(`${API_URL}/services/delete`, { serviceId });
-      toast.success('Service deleted successfully');
+      await axios.post(`${API_URL}/services/delete`, { id: serviceId });
+      toast.success('Watcher deleted successfully');
       fetchServices();
     } catch (error) {
-      toast.error('Failed to delete service');
+      toast.error('Failed to delete watcher');
     }
   };
 
@@ -78,16 +86,19 @@ export const ServicesPage: React.FC = () => {
     <div>
       <div className="mb-8 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Services</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Watchers</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Monitor your services and endpoints
+            Monitor your services and endpoints with GuardAnt watchers
           </p>
         </div>
         <button
           onClick={handleAdd}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
         >
-          Add Service
+          <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+          </svg>
+          Deploy New Watcher
         </button>
       </div>
 
@@ -95,7 +106,22 @@ export const ServicesPage: React.FC = () => {
         <ul className="divide-y divide-gray-200">
           {services.length === 0 ? (
             <li className="px-6 py-12 text-center text-gray-500">
-              No services configured yet. Add your first service to start monitoring.
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No watchers deployed</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by deploying your first watcher.</p>
+              <div className="mt-6">
+                <button
+                  onClick={handleAdd}
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Deploy New Watcher
+                </button>
+              </div>
             </li>
           ) : (
             services.map((service) => (
@@ -106,6 +132,8 @@ export const ServicesPage: React.FC = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         service.status === 'up' ? 'bg-green-100 text-green-800' :
                         service.status === 'down' ? 'bg-red-100 text-red-800' :
+                        service.status === 'degraded' ? 'bg-yellow-100 text-yellow-800' :
+                        service.status === 'maintenance' ? 'bg-blue-100 text-blue-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {service.status || 'unknown'}
@@ -116,7 +144,10 @@ export const ServicesPage: React.FC = () => {
                         {service.name}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {service.type} • {service.target} • Every {service.interval}s
+                        <span className="capitalize">{service.type}</span> • {service.target} • Every {service.interval}s
+                        {service.monitoring?.regions && (
+                          <span className="ml-2">• {service.monitoring.regions.length} regions</span>
+                        )}
                       </div>
                     </div>
                   </div>
