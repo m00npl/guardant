@@ -6,6 +6,18 @@
 echo "🔓 Vault Unseal Helper"
 echo "====================="
 
+# Check Vault status first
+echo "Checking Vault status..."
+STATUS=$(docker compose exec -T vault vault status 2>/dev/null)
+
+if echo "$STATUS" | grep -q "Sealed.*false"; then
+    echo "✅ Vault is already unsealed"
+    exit 0
+fi
+
+echo "🔐 Vault is sealed and needs to be unsealed."
+echo ""
+
 # Interactive mode - prompt for keys securely
 if [ $# -eq 0 ]; then
     echo "This script will prompt you for 3 unseal keys."
@@ -33,15 +45,6 @@ else
         echo "  ./unseal-vault.sh KEY1 KEY2 KEY3     # Direct mode (use with caution)"
         exit 1
     fi
-fi
-
-# Check Vault status
-echo "Checking Vault status..."
-STATUS=$(docker compose exec -T vault vault status 2>/dev/null)
-
-if echo "$STATUS" | grep -q "Sealed.*false"; then
-    echo "✅ Vault is already unsealed"
-    exit 0
 fi
 
 # Unseal Vault
