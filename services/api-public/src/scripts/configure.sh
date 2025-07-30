@@ -28,6 +28,60 @@ echo "        🐜 Worker Ant Configuration 🐜"
 echo -e "${NC}"
 echo ""
 
+# Check system requirements first
+echo -e "${BLUE}🔍 Checking system requirements...${NC}"
+MISSING_DEPS=""
+
+if ! command -v docker &> /dev/null; then
+    MISSING_DEPS="$MISSING_DEPS docker"
+    echo -e "${RED}❌ Docker is NOT installed${NC}"
+else
+    echo -e "${GREEN}✅ Docker is installed${NC}"
+fi
+
+if ! command -v git &> /dev/null; then
+    MISSING_DEPS="$MISSING_DEPS git"
+    echo -e "${RED}❌ Git is NOT installed${NC}"
+else
+    echo -e "${GREEN}✅ Git is installed${NC}"
+fi
+
+if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
+    MISSING_DEPS="$MISSING_DEPS curl"
+    echo -e "${RED}❌ curl/wget is NOT installed${NC}"
+else
+    echo -e "${GREEN}✅ curl/wget is installed${NC}"
+fi
+
+if [ ! -z "$MISSING_DEPS" ]; then
+    echo ""
+    echo -e "${RED}❌ Missing required dependencies!${NC}"
+    echo ""
+    echo -e "${YELLOW}Please install the missing dependencies:${NC}"
+    echo ""
+    if [[ $MISSING_DEPS == *"docker"* ]]; then
+        echo -e "${BLUE}# Install Docker:${NC}"
+        echo "curl -fsSL https://get.docker.com | sudo sh"
+        echo "sudo usermod -aG docker \$USER"
+        echo ""
+    fi
+    if [[ $MISSING_DEPS == *"git"* ]]; then
+        echo -e "${BLUE}# Install Git:${NC}"
+        echo "sudo apt-get update && sudo apt-get install -y git"
+        echo ""
+    fi
+    if [[ $MISSING_DEPS == *"curl"* ]]; then
+        echo -e "${BLUE}# Install curl:${NC}"
+        echo "sudo apt-get update && sudo apt-get install -y curl"
+        echo ""
+    fi
+    echo -e "${YELLOW}After installing, please run this script again.${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ All requirements satisfied!${NC}"
+echo ""
+
 # Function to validate email
 validate_email() {
     if [[ "$1" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
