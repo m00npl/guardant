@@ -87,7 +87,7 @@ export const Settings: React.FC = () => {
             <input
               type="text"
               className="input w-full font-mono text-sm"
-              value={'Not configured' || ''}
+              value='Not configured'
               readOnly
             />
           </div>
