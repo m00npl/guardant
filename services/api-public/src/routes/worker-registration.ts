@@ -134,10 +134,14 @@ registrationApi.get('/register/:workerId/status', async (c) => {
       const workerPassword = config.workerPassword || generateSecurePassword();
       
       // Return connection details with credentials
+      // Use stored rabbitmqUrl if available, otherwise generate new one
+      const rabbitmqUrl = config.rabbitmqUrl || 
+        `amqp://${workerUsername}:${workerPassword}@${process.env.RABBITMQ_HOST || 'rabbitmq'}:5672`;
+      
       return c.json({
         workerId: config.workerId,
         approved: true,
-        rabbitmqUrl: `amqp://${workerUsername}:${workerPassword}@${process.env.RABBITMQ_HOST || 'rabbitmq'}:5672`,
+        rabbitmqUrl: rabbitmqUrl,
         region: config.region,
       });
     } else {
