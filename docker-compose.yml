@@ -147,6 +147,8 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://guardant-redis:6379
+      - REDIS_HOST=guardant-redis
+      - REDIS_PORT=6379
       - RABBITMQ_URL=amqp://guardant:guardant123@guardant-rabbitmq:5672
     depends_on:
       redis:

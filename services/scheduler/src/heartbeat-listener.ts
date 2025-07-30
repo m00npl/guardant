@@ -5,11 +5,8 @@ import { createLogger } from '../../../shared/logger';
 const logger = createLogger('heartbeat-listener');
 
 // Redis connection
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-});
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redis = new Redis(redisUrl);
 
 export async function startHeartbeatListener(channel: amqp.Channel) {
   try {
