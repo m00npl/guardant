@@ -14,33 +14,28 @@ export const Login: React.FC = () => {
     setIsLoading(true)
 
     try {
-      // TODO: Replace with actual API call
-      // Temporary mock login
-      const mockNest = {
-        id: 'nest-1',
-        subdomain: 'demo',
-        name: 'Demo Company',
-        email: email,
-        walletAddress: '0x1234...',
-        subscription: {
-          tier: 'pro' as const,
-          servicesLimit: 50,
-          validUntil: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+      const response = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        settings: {
-          isPublic: true,
-          timezone: 'UTC',
-          language: 'en',
-        },
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        status: 'active' as const,
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to login')
       }
 
-      login(mockNest, 'mock-token')
-      toast.success('Welcome to your colony! 🐜')
+      if (data.success && data.data) {
+        login(data.data.nest, data.data.tokens.accessToken)
+        toast.success('Welcome to your colony! 🐜')
+      } else {
+        throw new Error('Invalid response from server')
+      }
     } catch (error) {
-      toast.error('Failed to enter colony')
+      toast.error(error instanceof Error ? error.message : 'Failed to enter colony')
     } finally {
       setIsLoading(false)
     }
