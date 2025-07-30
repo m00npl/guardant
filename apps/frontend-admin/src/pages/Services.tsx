@@ -19,7 +19,7 @@ import {
 
 export const Services: React.FC = () => {
   // Mock data - in real app this would come from API
-  const watchers = [
+  const watchers: any[] = [
     // Empty for now - will be populated from API
   ]
 

@@ -5,7 +5,6 @@ import {
   Globe, 
   Settings, 
   LogOut, 
-  Shield,
   MapPin,
   Activity,
   Code, // Widget icon

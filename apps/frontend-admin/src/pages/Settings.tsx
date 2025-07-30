@@ -5,7 +5,6 @@ import {
   Shield, 
   Bell,
   Palette,
-  Users,
   CreditCard,
   Key,
   Download
@@ -76,7 +75,7 @@ export const Settings: React.FC = () => {
             <input
               type="email"
               className="input w-full"
-              value={nest?.email || ''}
+              value={'admin@' + nest?.subdomain + '.guardant.me' || ''}
               readOnly
             />
           </div>
@@ -88,7 +87,7 @@ export const Settings: React.FC = () => {
             <input
               type="text"
               className="input w-full font-mono text-sm"
-              value={nest?.walletAddress || ''}
+              value={'Not configured' || ''}
               readOnly
             />
           </div>
@@ -154,7 +153,7 @@ export const Settings: React.FC = () => {
               </div>
               <input
                 type="checkbox"
-                checked={nest?.settings.isPublic}
+                checked={true}
                 readOnly
                 className="toggle"
               />
@@ -167,7 +166,7 @@ export const Settings: React.FC = () => {
                 type="text"
                 className="input w-full"
                 placeholder="status.yourcompany.com"
-                value={nest?.settings.customDomain || ''}
+                value={''}
                 readOnly
               />
             </div>
