@@ -72,6 +72,15 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose }) 
       setRegions(response.data.data);
     } catch (error) {
       console.error('Failed to fetch regions:', error);
+      // Fallback to default regions if API fails
+      setRegions([
+        { id: 'eu-west-1', name: 'Europe West (Frankfurt)', available: true },
+        { id: 'eu-central-1', name: 'Europe Central (Warsaw)', available: true },
+        { id: 'eu-west-2', name: 'Europe West (London)', available: true },
+        { id: 'us-east-1', name: 'US East (Virginia)', available: true },
+        { id: 'us-west-1', name: 'US West (California)', available: true },
+        { id: 'ca-central-1', name: 'Canada Central (Toronto)', available: true },
+      ]);
     }
   };
 

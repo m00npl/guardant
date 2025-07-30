@@ -34,10 +34,26 @@ const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
 // Add request interceptor to add auth token
 axios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Skip auth header for public endpoints
+    const publicEndpoints = [
+      '/regions/list',
+      '/subscription/plans',
+      '/auth/login',
+      '/auth/register',
+      '/auth/refresh'
+    ];
+    
+    const isPublicEndpoint = publicEndpoints.some(endpoint => 
+      config.url?.includes(endpoint)
+    );
+    
+    if (!isPublicEndpoint) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
+    
     return config;
   },
   (error) => {
