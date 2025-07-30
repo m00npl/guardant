@@ -45,13 +45,18 @@ check_health() {
 echo "📥 Step 1: Pulling latest code..."
 git pull origin main
 
-# Step 2: Copy production environment
-echo "🔧 Step 2: Setting up production environment..."
-if [ -f .env.production ]; then
+# Step 2: Check environment configuration
+echo "🔧 Step 2: Checking environment configuration..."
+if [ -f .env ]; then
+    echo "✅ Using existing .env file"
+elif [ -f .env.production ]; then
+    echo "📋 Copying .env.production to .env"
     cp .env.production .env
     echo "✅ Production environment configured"
 else
-    echo "❌ .env.production not found!"
+    echo "❌ No .env file found!"
+    echo "Please create .env file with your configuration"
+    echo "You can use .env.example or .env.production as a template"
     exit 1
 fi
 
