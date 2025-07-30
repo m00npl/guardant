@@ -4,7 +4,7 @@ import { createLogger } from '../../../../shared/logger';
 import Redis from 'ioredis';
 import axios from 'axios';
 import crypto from 'crypto';
-import { getAuthUser } from '../../../../../packages/auth-system/src/index';
+import { getAuthUser } from '/app/packages/auth-system/src/index';
 
 const logger = createLogger('workers-api');
 const workersApi = new Hono();
