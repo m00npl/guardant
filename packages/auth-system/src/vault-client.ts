@@ -14,6 +14,8 @@ export class VaultHttpClient {
   async read(path: string): Promise<any> {
     const url = `${this.config.address}/v1/${path}`;
     
+    console.log('🔍 VaultHttpClient.read:', { path, url });
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -23,14 +25,17 @@ export class VaultHttpClient {
     });
 
     if (response.status === 404) {
+      console.log('❌ Vault returned 404 for path:', path);
       return null;
     }
 
     if (!response.ok) {
+      console.error('❌ Vault read failed:', response.status, response.statusText);
       throw new Error(`Vault read failed: ${response.statusText}`);
     }
 
     const result = await response.json();
+    console.log('✅ Vault response received, has data:', !!result.data?.data);
     return result.data?.data || null;
   }
 
