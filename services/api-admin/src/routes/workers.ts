@@ -744,4 +744,161 @@ workersApi.get('/registrations/approved', async (c) => {
   }
 });
 
+// Get regions/colonies statistics
+workersApi.get('/regions', async (c) => {
+  try {
+    // Get all worker heartbeats
+    const heartbeats = await redis.hgetall('workers:heartbeat');
+    const registrations = await redis.hgetall('workers:registrations');
+    
+    // Group workers by region
+    const regionMap = new Map<string, {
+      workerCount: number;
+      activeWorkers: number;
+      totalPoints: number;
+      totalJobs: number;
+      workers: any[];
+    }>();
+    
+    // Process all workers
+    Object.entries(heartbeats).forEach(([workerId, data]) => {
+      const heartbeat = JSON.parse(data);
+      const registration = registrations[workerId] ? JSON.parse(registrations[workerId]) : null;
+      
+      if (!registration?.approved) return;
+      
+      const region = heartbeat.region || registration.region || 'unknown';
+      const isActive = Date.now() - heartbeat.timestamp < 60000; // Active if heartbeat within 1 minute
+      
+      if (!regionMap.has(region)) {
+        regionMap.set(region, {
+          workerCount: 0,
+          activeWorkers: 0,
+          totalPoints: 0,
+          totalJobs: 0,
+          workers: []
+        });
+      }
+      
+      const regionData = regionMap.get(region)!;
+      regionData.workerCount++;
+      if (isActive) regionData.activeWorkers++;
+      regionData.totalPoints += heartbeat.totalPoints || 0;
+      regionData.totalJobs += heartbeat.checksCompleted || 0;
+      regionData.workers.push({
+        workerId,
+        isActive,
+        lastSeen: heartbeat.timestamp,
+        points: heartbeat.totalPoints || 0,
+        jobs: heartbeat.checksCompleted || 0,
+        owner: registration.ownerEmail
+      });
+    });
+    
+    // Convert to array and add region metadata
+    const regions = Array.from(regionMap.entries()).map(([region, data]) => {
+      // Calculate average latency (mock for now, could be real data)
+      const avgLatency = region === 'auto' ? 45 : 
+                        region.startsWith('eu-') ? 38 :
+                        region.startsWith('us-') ? 23 : 55;
+      
+      // Calculate uptime (based on active workers ratio)
+      const uptime = data.workerCount > 0 
+        ? (data.activeWorkers / data.workerCount) * 100 
+        : 0;
+      
+      return {
+        id: region,
+        name: getRegionName(region),
+        continent: getContinent(region),
+        country: getCountry(region),
+        city: getCity(region),
+        flag: getFlag(region),
+        available: data.activeWorkers > 0,
+        workerAnts: data.workerCount,
+        activeWorkerAnts: data.activeWorkers,
+        activeJobs: data.totalJobs,
+        totalPoints: data.totalPoints,
+        avgLatency,
+        uptime: parseFloat(uptime.toFixed(1)),
+        workers: data.workers.sort((a, b) => b.points - a.points) // Sort by points
+      };
+    });
+    
+    // Sort regions by worker count
+    regions.sort((a, b) => b.workerAnts - a.workerAnts);
+    
+    return c.json({
+      success: true,
+      regions,
+      summary: {
+        totalRegions: regions.length,
+        totalWorkers: regions.reduce((sum, r) => sum + r.workerAnts, 0),
+        activeWorkers: regions.reduce((sum, r) => sum + r.activeWorkerAnts, 0),
+        totalJobs: regions.reduce((sum, r) => sum + r.activeJobs, 0),
+        totalPoints: regions.reduce((sum, r) => sum + r.totalPoints, 0),
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to get regions data', error);
+    return c.json({ error: 'Failed to get regions' }, 500);
+  }
+});
+
+// Helper functions for region metadata
+function getRegionName(region: string): string {
+  const names: Record<string, string> = {
+    'auto': 'Auto-detected',
+    'eu-west-1': 'Europe West (Frankfurt)',
+    'eu-central-1': 'Europe Central (Warsaw)',
+    'us-east-1': 'US East (Virginia)',
+    'us-west-1': 'US West (California)',
+    'ap-southeast-1': 'Asia Pacific (Singapore)',
+  };
+  return names[region] || region;
+}
+
+function getContinent(region: string): string {
+  if (region.startsWith('eu-')) return 'Europe';
+  if (region.startsWith('us-')) return 'North America';
+  if (region.startsWith('ap-')) return 'Asia';
+  if (region.startsWith('sa-')) return 'South America';
+  if (region.startsWith('af-')) return 'Africa';
+  return 'Global';
+}
+
+function getCountry(region: string): string {
+  const countries: Record<string, string> = {
+    'eu-west-1': 'Germany',
+    'eu-central-1': 'Poland',
+    'us-east-1': 'United States',
+    'us-west-1': 'United States',
+    'ap-southeast-1': 'Singapore',
+  };
+  return countries[region] || 'Unknown';
+}
+
+function getCity(region: string): string {
+  const cities: Record<string, string> = {
+    'eu-west-1': 'Frankfurt',
+    'eu-central-1': 'Warsaw',
+    'us-east-1': 'Ashburn',
+    'us-west-1': 'San Francisco',
+    'ap-southeast-1': 'Singapore',
+  };
+  return cities[region] || 'Unknown';
+}
+
+function getFlag(region: string): string {
+  const flags: Record<string, string> = {
+    'eu-west-1': '🇩🇪',
+    'eu-central-1': '🇵🇱',
+    'us-east-1': '🇺🇸',
+    'us-west-1': '🇺🇸',
+    'ap-southeast-1': '🇸🇬',
+    'auto': '🌍',
+  };
+  return flags[region] || '🏳️';
+}
+
 export { workersApi };
