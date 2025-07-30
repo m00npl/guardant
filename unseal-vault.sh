@@ -1,30 +1,38 @@
 #!/bin/bash
 
 # Vault Unseal Helper Script
-# Usage: ./unseal-vault.sh [KEY1] [KEY2] [KEY3]
-# Or set environment variables: VAULT_UNSEAL_KEY_1, VAULT_UNSEAL_KEY_2, VAULT_UNSEAL_KEY_3
+# This script helps unseal Vault securely without storing keys
 
 echo "🔓 Vault Unseal Helper"
 echo "====================="
 
-# Get keys from arguments or environment
-KEY1=${1:-$VAULT_UNSEAL_KEY_1}
-KEY2=${2:-$VAULT_UNSEAL_KEY_2}
-KEY3=${3:-$VAULT_UNSEAL_KEY_3}
-
-# Check if we have keys
-if [ -z "$KEY1" ] || [ -z "$KEY2" ] || [ -z "$KEY3" ]; then
-    echo "❌ Please provide 3 unseal keys"
+# Interactive mode - prompt for keys securely
+if [ $# -eq 0 ]; then
+    echo "This script will prompt you for 3 unseal keys."
+    echo "Keys will not be displayed or stored."
     echo ""
-    echo "Usage:"
-    echo "  ./unseal-vault.sh KEY1 KEY2 KEY3"
-    echo ""
-    echo "Or set environment variables:"
-    echo "  export VAULT_UNSEAL_KEY_1=your-key-1"
-    echo "  export VAULT_UNSEAL_KEY_2=your-key-2"
-    echo "  export VAULT_UNSEAL_KEY_3=your-key-3"
-    echo "  ./unseal-vault.sh"
-    exit 1
+    
+    # Use read -s for silent input
+    read -s -p "Enter unseal key 1: " KEY1
+    echo
+    read -s -p "Enter unseal key 2: " KEY2
+    echo
+    read -s -p "Enter unseal key 3: " KEY3
+    echo
+else
+    # Allow command line args for automation (use with caution)
+    KEY1=$1
+    KEY2=$2
+    KEY3=$3
+    
+    if [ -z "$KEY1" ] || [ -z "$KEY2" ] || [ -z "$KEY3" ]; then
+        echo "❌ Please provide 3 unseal keys"
+        echo ""
+        echo "Usage:"
+        echo "  ./unseal-vault.sh                    # Interactive mode (recommended)"
+        echo "  ./unseal-vault.sh KEY1 KEY2 KEY3     # Direct mode (use with caution)"
+        exit 1
+    fi
 fi
 
 # Check Vault status
