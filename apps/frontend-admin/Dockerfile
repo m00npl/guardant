@@ -29,8 +29,8 @@ FROM nginx:alpine
 # Copy built files from builder stage
 COPY --from=builder /app/apps/frontend-admin/dist /usr/share/nginx/html
 
-# Copy nginx configuration if exists
-COPY apps/frontend-admin/nginx.conf /etc/nginx/conf.d/default.conf || echo "No custom nginx config"
+# Copy nginx configuration
+COPY apps/frontend-admin/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
