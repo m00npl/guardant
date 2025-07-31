@@ -9,6 +9,7 @@ import { Regions } from './pages/Regions'
 import { Settings } from './pages/Settings'
 import { Widget } from './pages/Widget'
 import { Workers } from './pages/Workers'
+import { Team } from './pages/Team'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { useAuthStore } from './stores/authStore'
@@ -47,6 +48,7 @@ function App() {
           <Route path="/services/:id/edit" element={<EditService />} />
           <Route path="/regions" element={<Regions />} />
           <Route path="/workers" element={<Workers />} />
+          <Route path="/team" element={<Team />} />
           <Route path="/widget" element={<Widget />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>

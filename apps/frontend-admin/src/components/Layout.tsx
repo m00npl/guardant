@@ -9,7 +9,8 @@ import {
   Activity,
   Code, // Widget icon
   Bug, // Ant-like icon
-  Users // Workers icon
+  Users, // Workers icon
+  UserPlus // Team icon
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
@@ -26,6 +27,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Ant Hill', href: '/dashboard', icon: BarChart3 }, // Dashboard -> Ant Hill
     { name: 'Watchers', href: '/services', icon: Globe }, // Services -> Watchers (ants watching services)
     { name: 'Colonies', href: '/regions', icon: MapPin }, // Regions -> Colonies (ant colonies in different regions)
+    { name: 'Team', href: '/team', icon: UserPlus }, // Team management
     { name: 'Widget', href: '/widget', icon: Code }, // Embeddable Widget
     { name: 'Queen\'s Den', href: '/settings', icon: Settings }, // Settings -> Queen's Den
   ]
