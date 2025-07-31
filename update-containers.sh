@@ -48,32 +48,32 @@ while IFS= read -r file; do
     
     # Frontend Admin
     if [[ $file == apps/frontend-admin/* ]]; then
-        add_service "guardant-admin-frontend"
+        add_service "admin-frontend"
     fi
     
     # Admin API
     if [[ $file == services/api-admin/* ]] || [[ $file == packages/auth-system/* ]]; then
-        add_service "guardant-admin-api"
+        add_service "admin-api"
     fi
     
     # Status API
     if [[ $file == services/api-status/* ]]; then
-        add_service "guardant-status-api"
+        add_service "public-api"
     fi
     
     # Scheduler
     if [[ $file == services/scheduler/* ]]; then
-        add_service "guardant-scheduler"
+        add_service "monitoring-scheduler"
     fi
     
     # Redis config
     if [[ $file == redis.conf ]]; then
-        add_service "guardant-redis"
+        add_service "redis"
     fi
     
     # Nginx config
     if [[ $file == nginx/* ]] || [[ $file == nginx.conf ]]; then
-        add_service "guardant-nginx"
+        add_service "nginx-proxy"
     fi
     
     # Docker compose changes

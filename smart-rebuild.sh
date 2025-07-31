@@ -99,14 +99,14 @@ fi
 
 # Service mapping
 declare -A SERVICE_MAP=(
-    ["guardant-admin-frontend"]="apps/frontend-admin"
-    ["guardant-admin-api"]="services/api-admin"
-    ["guardant-status-api"]="services/api-status"
-    ["guardant-scheduler"]="services/scheduler"
-    ["guardant-redis"]="redis"
-    ["guardant-nginx"]="nginx"
-    ["guardant-rabbitmq"]="rabbitmq"
-    ["guardant-vault"]="vault"
+    ["admin-frontend"]="apps/frontend-admin"
+    ["admin-api"]="services/api-admin"
+    ["public-api"]="services/api-status"
+    ["monitoring-scheduler"]="services/scheduler"
+    ["redis"]="redis"
+    ["nginx-proxy"]="nginx"
+    ["rabbitmq"]="rabbitmq"
+    ["vault"]="vault"
 )
 
 # Services to rebuild
@@ -138,32 +138,32 @@ else
         
         # Frontend Admin
         if [[ $file =~ ^apps/frontend-admin/ ]]; then
-            add_service_with_reason "guardant-admin-frontend" "$file"
+            add_service_with_reason "admin-frontend" "$file"
         fi
         
         # Admin API
         if [[ $file =~ ^services/api-admin/ ]] || [[ $file =~ ^packages/auth-system/ ]]; then
-            add_service_with_reason "guardant-admin-api" "$file"
+            add_service_with_reason "admin-api" "$file"
         fi
         
         # Status API
         if [[ $file =~ ^services/api-status/ ]]; then
-            add_service_with_reason "guardant-status-api" "$file"
+            add_service_with_reason "public-api" "$file"
         fi
         
         # Scheduler
         if [[ $file =~ ^services/scheduler/ ]]; then
-            add_service_with_reason "guardant-scheduler" "$file"
+            add_service_with_reason "monitoring-scheduler" "$file"
         fi
         
         # Redis
         if [[ $file == "redis.conf" ]] || [[ $file =~ ^redis/ ]]; then
-            add_service_with_reason "guardant-redis" "$file"
+            add_service_with_reason "redis" "$file"
         fi
         
         # Nginx
         if [[ $file =~ ^nginx/ ]] || [[ $file == "nginx.conf" ]]; then
-            add_service_with_reason "guardant-nginx" "$file"
+            add_service_with_reason "nginx-proxy" "$file"
         fi
         
         # Docker Compose
