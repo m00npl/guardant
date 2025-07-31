@@ -185,6 +185,7 @@ const hybridStorage = {
         
         // Fetch monitoring status from scheduler for each service
         const schedulerServices = await redis.hgetall('scheduler:services');
+        console.log('📊 Scheduler services count:', Object.keys(schedulerServices).length);
         
         // Enhance services with lastCheck data
         for (const service of services) {
