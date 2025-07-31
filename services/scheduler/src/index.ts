@@ -128,38 +128,19 @@ async function sendCheckCommand(service: ScheduledService) {
     timestamp: Date.now(),
   };
   
-  // Determine routing based on regions
-  const regions = service.monitoring?.regions || [];
-  if (regions.length > 0) {
-    // Send to specific regions
-    for (const region of regions) {
-      await rabbitmqChannel.publish(
-        'worker_commands',
-        `check_service_once.${region}`,
-        Buffer.from(JSON.stringify(command)),
-        { persistent: true }
-      );
-      
-      logger.info('📤 Sent region-specific check', { 
-        serviceId: service.id,
-        region,
-        target: service.target 
-      });
-    }
-  } else {
-    // Send to any available worker
-    await rabbitmqChannel.publish(
-      'worker_commands',
-      'check_service_once',
-      Buffer.from(JSON.stringify(command)),
-      { persistent: true }
-    );
-    
-    logger.info('📤 Sent global check command', { 
-      serviceId: service.id,
-      target: service.target 
-    });
-  }
+  // Always send to general queue - workers will filter by region
+  await rabbitmqChannel.publish(
+    'worker_commands',
+    'check_service_once',
+    Buffer.from(JSON.stringify(command)),
+    { persistent: true }
+  );
+  
+  logger.info('📤 Sent check command', { 
+    serviceId: service.id,
+    target: service.target,
+    regions: service.monitoring?.regions || ['any']
+  });
 }
 
 // Propagate cached result to service
