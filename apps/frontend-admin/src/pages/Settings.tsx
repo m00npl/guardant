@@ -320,10 +320,10 @@ export const Settings: React.FC = () => {
         )}
         
         <div className="mt-6 flex justify-center">
-          <button className="btn-primary">
+          <Link to="/subscription" className="btn-primary inline-flex items-center">
             <CreditCard className="h-5 w-5 mr-2" />
             Upgrade Colony
-          </button>
+          </Link>
         </div>
       </div>
 

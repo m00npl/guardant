@@ -11,6 +11,7 @@ import { Widget } from './pages/Widget'
 import { Workers } from './pages/Workers'
 import { Team } from './pages/Team'
 import { ApiKeys } from './pages/ApiKeys'
+import { Subscription } from './pages/Subscription'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { useAuthStore } from './stores/authStore'
@@ -51,6 +52,7 @@ function App() {
           <Route path="/workers" element={<Workers />} />
           <Route path="/team" element={<Team />} />
           <Route path="/api-keys" element={<ApiKeys />} />
+          <Route path="/subscription" element={<Subscription />} />
           <Route path="/widget" element={<Widget />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
