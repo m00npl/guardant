@@ -17,6 +17,7 @@ import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { useAuthStore } from './stores/authStore'
 import { Monitoring } from './pages/Monitoring'
+import { PlatformAdminPage } from './pages/PlatformAdminPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -59,6 +60,7 @@ function App() {
           <Route path="/widget" element={<Widget />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/monitoring" element={<Monitoring />} />
+          <Route path="/platform" element={<PlatformAdminPage />} />
         </Routes>
       </Layout>
       <Toaster 

@@ -10,7 +10,8 @@ import {
   Code, // Widget icon
   Bug, // Ant-like icon
   Users, // Workers icon
-  UserPlus // Team icon
+  UserPlus, // Team icon
+  Shield // Platform Admin icon
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
@@ -64,6 +65,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Add Monitoring page for platform admins and owners
   if (isPlatformAdmin() || user?.role === 'owner') {
     navigation.push({ name: 'Monitoring', href: '/monitoring', icon: Activity })
+  }
+  
+  // Add Platform Admin page for platform admins only
+  if (user?.role === 'platform_admin') {
+    navigation.push({ name: 'Platform Admin', href: '/platform', icon: Shield })
   }
 
   const isActive = (path: string) => {
