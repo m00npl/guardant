@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import axios from 'axios';
+import { apiFetch } from '../utils/api';
 import { 
   Users, 
   Building2, 
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
+// API URL is handled by apiFetch utility
 
 interface PlatformStats {
   overview: {
@@ -43,7 +43,10 @@ interface PlatformStats {
 
 export const PlatformAdminPage: React.FC = () => {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const tabFromUrl = searchParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [nests, setNests] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -57,6 +60,10 @@ export const PlatformAdminPage: React.FC = () => {
   }
 
   useEffect(() => {
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
+
+  useEffect(() => {
     loadPlatformData();
   }, [activeTab]);
 
@@ -64,23 +71,37 @@ export const PlatformAdminPage: React.FC = () => {
     setLoading(true);
     try {
       if (activeTab === 'overview') {
-        const response = await axios.post(`${API_URL}/platform/stats`);
-        setStats(response.data.data);
+        const response = await apiFetch('/api/admin/platform/stats', {
+          method: 'POST'
+        });
+        const data = await response.json();
+        setStats(data.data);
       } else if (activeTab === 'nests') {
-        const response = await axios.post(`${API_URL}/platform/nests/list`, {
-          page: 1,
-          limit: 50
+        const response = await apiFetch('/api/admin/platform/nests/list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: 1,
+            limit: 50
+          })
         });
-        setNests(response.data.data);
+        const data = await response.json();
+        setNests(data.data);
       } else if (activeTab === 'users') {
-        const response = await axios.post(`${API_URL}/platform/users/list`, {
-          page: 1,
-          limit: 50
+        const response = await apiFetch('/api/admin/platform/users/list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: 1,
+            limit: 50
+          })
         });
-        setUsers(response.data.data);
+        const data = await response.json();
+        setUsers(data.data);
       } else if (activeTab === 'workers') {
-        const response = await axios.get(`${API_URL}/workers/registrations/approved`);
-        setWorkers(response.data.approved || []);
+        const response = await apiFetch('/api/admin/workers/registrations/approved');
+        const data = await response.json();
+        setWorkers(data.approved || []);
       }
     } catch (error: any) {
       toast.error('Failed to load platform data');
@@ -92,9 +113,13 @@ export const PlatformAdminPage: React.FC = () => {
 
   const handleUserStatusChange = async (userId: string, isActive: boolean) => {
     try {
-      await axios.post(`${API_URL}/platform/users/${userId}/status`, {
-        isActive,
-        reason: isActive ? 'Reactivated by platform admin' : 'Deactivated by platform admin'
+      await apiFetch(`/api/admin/platform/users/${userId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isActive,
+          reason: isActive ? 'Reactivated by platform admin' : 'Deactivated by platform admin'
+        })
       });
       toast.success(`User ${isActive ? 'activated' : 'deactivated'} successfully`);
       loadPlatformData();
@@ -105,9 +130,13 @@ export const PlatformAdminPage: React.FC = () => {
 
   const handleNestStatusChange = async (nestId: string, isActive: boolean) => {
     try {
-      await axios.post(`${API_URL}/platform/nests/${nestId}/status`, {
-        isActive,
-        reason: isActive ? 'Reactivated by platform admin' : 'Deactivated by platform admin'
+      await apiFetch(`/api/admin/platform/nests/${nestId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isActive,
+          reason: isActive ? 'Reactivated by platform admin' : 'Deactivated by platform admin'
+        })
       });
       toast.success(`Organization ${isActive ? 'activated' : 'deactivated'} successfully`);
       loadPlatformData();
@@ -120,7 +149,9 @@ export const PlatformAdminPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this worker? This action cannot be undone.')) return;
     
     try {
-      await axios.delete(`${API_URL}/workers/${workerId}`);
+      await apiFetch(`/api/admin/workers/${workerId}`, {
+        method: 'DELETE'
+      });
       toast.success('Worker deleted successfully');
       loadPlatformData();
     } catch (error: any) {
@@ -130,7 +161,9 @@ export const PlatformAdminPage: React.FC = () => {
 
   const handleWorkerSuspend = async (workerId: string) => {
     try {
-      await axios.post(`${API_URL}/workers/${workerId}/suspend`);
+      await apiFetch(`/api/admin/workers/${workerId}/suspend`, {
+        method: 'POST'
+      });
       toast.success('Worker suspended successfully');
       loadPlatformData();
     } catch (error: any) {
@@ -140,7 +173,9 @@ export const PlatformAdminPage: React.FC = () => {
 
   const handleWorkerResume = async (workerId: string) => {
     try {
-      await axios.post(`${API_URL}/workers/${workerId}/resume`);
+      await apiFetch(`/api/admin/workers/${workerId}/resume`, {
+        method: 'POST'
+      });
       toast.success('Worker resumed successfully');
       loadPlatformData();
     } catch (error: any) {
@@ -157,7 +192,11 @@ export const PlatformAdminPage: React.FC = () => {
     if (!confirm(`Are you sure you want to delete ${selectedWorkers.length} workers? This action cannot be undone.`)) return;
     
     try {
-      await axios.post(`${API_URL}/workers/bulk/delete`, { workerIds: selectedWorkers });
+      await apiFetch(`/api/admin/workers/bulk/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerIds: selectedWorkers })
+      });
       toast.success(`${selectedWorkers.length} workers deleted successfully`);
       setSelectedWorkers([]);
       loadPlatformData();

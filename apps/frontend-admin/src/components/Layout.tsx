@@ -11,7 +11,9 @@ import {
   Bug, // Ant-like icon
   Users, // Workers icon
   UserPlus, // Team icon
-  Shield // Platform Admin icon
+  Shield, // Platform Admin icon
+  Building2, // Organizations icon
+  DollarSign // Revenue icon
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
@@ -53,10 +55,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   if (user?.role === 'platform_admin') {
     // Platform admins only see platform management options
     navigation = [
-      { name: 'Ant Hill', href: '/dashboard', icon: BarChart3 }, // Overview
-      { name: 'Platform Admin', href: '/platform', icon: Shield },
-      { name: 'Worker Colony', href: '/workers', icon: Users },
-      { name: 'Monitoring', href: '/monitoring', icon: Activity },
+      { name: 'Overview', href: '/platform', icon: Activity },
+      { name: 'Organizations', href: '/platform?tab=nests', icon: Building2 },
+      { name: 'Users', href: '/platform?tab=users', icon: Users },
+      { name: 'Worker Colony', href: '/platform?tab=workers', icon: Users },
+      { name: 'Revenue', href: '/platform?tab=revenue', icon: DollarSign },
+      { name: 'Security', href: '/platform?tab=security', icon: Shield },
+      { name: 'Settings', href: '/platform?tab=settings', icon: Settings },
     ]
   } else {
     // Regular users see normal menu
