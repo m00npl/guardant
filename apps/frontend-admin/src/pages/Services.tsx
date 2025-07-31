@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   Plus, 
@@ -16,12 +16,41 @@ import {
   Clock,
   MapPin
 } from 'lucide-react'
+import { useAuthStore } from '../stores/authStore'
+import toast from 'react-hot-toast'
 
 export const Services: React.FC = () => {
-  // Mock data - in real app this would come from API
-  const watchers: any[] = [
-    // Empty for now - will be populated from API
-  ]
+  const { token } = useAuthStore()
+  const [watchers, setWatchers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchWatchers()
+  }, [])
+
+  const fetchWatchers = async () => {
+    try {
+      const response = await fetch('/api/admin/services/list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch watchers')
+      }
+
+      setWatchers(data.data || [])
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load watchers')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getServiceIcon = (type: string) => {
     const icons = {
@@ -69,8 +98,16 @@ export const Services: React.FC = () => {
         </Link>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="card p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading watchers...</p>
+        </div>
+      )}
+
       {/* Empty State */}
-      {watchers.length === 0 && (
+      {!loading && watchers.length === 0 && (
         <div className="card p-12 text-center">
           <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <Eye className="h-12 w-12 text-gray-400" />
@@ -94,8 +131,9 @@ export const Services: React.FC = () => {
         </div>
       )}
 
-      {/* Service Types Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Service Types Info - only show when no watchers */}
+      {!loading && watchers.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center mb-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -144,6 +182,7 @@ export const Services: React.FC = () => {
           </p>
         </div>
       </div>
+      )}
 
       {/* Services List (when not empty) */}
       {watchers.length > 0 && (
