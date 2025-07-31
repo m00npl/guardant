@@ -282,6 +282,16 @@ async function loadServices() {
 
 // Add or update service
 async function addService(service: any) {
+  // Validate that service has an ID
+  if (!service.id) {
+    logger.error('Cannot add service without ID', { 
+      name: service.name, 
+      type: service.type,
+      target: service.target 
+    });
+    return;
+  }
+
   const existingService = scheduledServices.get(service.id);
   
   const scheduledService: ScheduledService = {
