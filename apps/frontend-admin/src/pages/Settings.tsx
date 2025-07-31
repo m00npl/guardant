@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Crown, 
   Globe, 
@@ -7,12 +7,158 @@ import {
   Palette,
   CreditCard,
   Key,
-  Download
+  Download,
+  Loader2,
+  Save,
+  AlertTriangle
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import toast from 'react-hot-toast'
+
+interface NestProfile {
+  id: string
+  name: string
+  subdomain: string
+  email: string
+  settings: {
+    publicStatusPage: boolean
+    customDomain?: string
+    emailAlerts: boolean
+    weeklyReports: boolean
+    theme: 'light' | 'dark' | 'auto'
+    language: string
+  }
+  subscription: {
+    tier: string
+    servicesLimit: number
+    status: string
+    currentUsage: number
+    billingCycle?: string
+    nextBillingDate?: string
+  }
+  walletAddress?: string
+  createdAt: number
+  lastModified: number
+}
 
 export const Settings: React.FC = () => {
-  const { nest } = useAuthStore()
+  const { nest, token } = useAuthStore()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [profile, setProfile] = useState<NestProfile | null>(null)
+  const [formData, setFormData] = useState({
+    publicStatusPage: true,
+    customDomain: '',
+    emailAlerts: true,
+    weeklyReports: true,
+    theme: 'light' as 'light' | 'dark' | 'auto',
+    language: 'en'
+  })
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch('/api/admin/nest/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch profile')
+      }
+
+      if (data.success && data.data) {
+        setProfile(data.data)
+        setFormData({
+          publicStatusPage: data.data.settings?.publicStatusPage ?? true,
+          customDomain: data.data.settings?.customDomain || '',
+          emailAlerts: data.data.settings?.emailAlerts ?? true,
+          weeklyReports: data.data.settings?.weeklyReports ?? true,
+          theme: data.data.settings?.theme || 'light',
+          language: data.data.settings?.language || 'en'
+        })
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load profile')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    setSaving(true)
+    try {
+      const response = await fetch('/api/admin/nest/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          settings: formData
+        })
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save settings')
+      }
+
+      toast.success('Settings saved successfully!')
+      fetchProfile() // Refresh profile
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save settings')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteNest = async () => {
+    if (deleteConfirmText !== profile?.name) {
+      toast.error('Colony name does not match')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/nest/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete colony')
+      }
+
+      toast.success('Colony deleted successfully')
+      // Logout user after deletion
+      window.location.href = '/login'
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete colony')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
+      </div>
+    )
+  }
+
+  const currentProfile = profile || nest
 
   return (
     <div className="space-y-8">
@@ -46,7 +192,7 @@ export const Settings: React.FC = () => {
             <input
               type="text"
               className="input w-full"
-              value={nest?.name || ''}
+              value={currentProfile?.name || ''}
               readOnly
             />
           </div>
@@ -59,7 +205,7 @@ export const Settings: React.FC = () => {
               <input
                 type="text"
                 className="input flex-1 rounded-r-none"
-                value={nest?.subdomain || ''}
+                value={currentProfile?.subdomain || ''}
                 readOnly
               />
               <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-500">
@@ -75,7 +221,7 @@ export const Settings: React.FC = () => {
             <input
               type="email"
               className="input w-full"
-              value={'admin@' + nest?.subdomain + '.guardant.me' || ''}
+              value={profile?.email || 'Loading...'}
               readOnly
             />
           </div>
@@ -87,7 +233,7 @@ export const Settings: React.FC = () => {
             <input
               type="text"
               className="input w-full font-mono text-sm"
-              value='Not configured'
+              value={profile?.walletAddress || 'Not configured'}
               readOnly
             />
           </div>
@@ -106,26 +252,36 @@ export const Settings: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <div className="text-2xl font-bold text-gray-900">
-              {nest?.subscription.tier === 'free' ? 'Worker Ant' :
-               nest?.subscription.tier === 'pro' ? 'Soldier Ant' : 'Queen Ant'}
+              {profile?.subscription.tier === 'free' ? 'Worker Ant' :
+               profile?.subscription.tier === 'pro' ? 'Soldier Ant' : 
+               profile?.subscription.tier === 'enterprise' ? 'Queen Ant' : 
+               currentProfile?.subscription.tier || 'Free'}
             </div>
             <div className="text-sm text-gray-600 mt-1">Current Tier</div>
           </div>
           
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <div className="text-2xl font-bold text-gray-900">
-              {nest?.subscription.servicesLimit === -1 ? '∞' : nest?.subscription.servicesLimit}
+              {profile?.subscription.currentUsage || 0} / {profile?.subscription.servicesLimit === -1 ? '∞' : profile?.subscription.servicesLimit || currentProfile?.subscription.servicesLimit}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Watcher Limit</div>
+            <div className="text-sm text-gray-600 mt-1">Watchers Used</div>
           </div>
           
           <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-success-600">
-              Active
+            <div className={`text-2xl font-bold ${
+              profile?.subscription.status === 'active' ? 'text-success-600' : 'text-warning-600'
+            }`}>
+              {profile?.subscription.status || 'Active'}
             </div>
             <div className="text-sm text-gray-600 mt-1">Status</div>
           </div>
         </div>
+
+        {profile?.subscription.nextBillingDate && (
+          <div className="mt-4 text-center text-sm text-gray-600">
+            Next billing: {new Date(profile.subscription.nextBillingDate).toLocaleDateString()}
+          </div>
+        )}
         
         <div className="mt-6 flex justify-center">
           <button className="btn-primary">
@@ -153,8 +309,8 @@ export const Settings: React.FC = () => {
               </div>
               <input
                 type="checkbox"
-                checked={true}
-                readOnly
+                checked={formData.publicStatusPage}
+                onChange={(e) => setFormData({ ...formData, publicStatusPage: e.target.checked })}
                 className="toggle"
               />
             </div>
@@ -166,8 +322,8 @@ export const Settings: React.FC = () => {
                 type="text"
                 className="input w-full"
                 placeholder="status.yourcompany.com"
-                value={''}
-                readOnly
+                value={formData.customDomain}
+                onChange={(e) => setFormData({ ...formData, customDomain: e.target.value })}
               />
             </div>
           </div>
@@ -207,14 +363,24 @@ export const Settings: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">Email Alerts</span>
                 <p className="text-xs text-gray-500">Get notified when watchers go down</p>
               </div>
-              <input type="checkbox" defaultChecked className="toggle" />
+              <input 
+                type="checkbox" 
+                checked={formData.emailAlerts}
+                onChange={(e) => setFormData({ ...formData, emailAlerts: e.target.checked })}
+                className="toggle" 
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-sm font-medium text-gray-700">Weekly Reports</span>
                 <p className="text-xs text-gray-500">Receive colony performance summaries</p>
               </div>
-              <input type="checkbox" defaultChecked className="toggle" />
+              <input 
+                type="checkbox" 
+                checked={formData.weeklyReports}
+                onChange={(e) => setFormData({ ...formData, weeklyReports: e.target.checked })}
+                className="toggle" 
+              />
             </div>
           </div>
         </div>
@@ -232,24 +398,53 @@ export const Settings: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Theme
               </label>
-              <select className="input w-full">
-                <option>Default (Light)</option>
-                <option>Dark Mode</option>
-                <option>Auto (System)</option>
+              <select 
+                className="input w-full"
+                value={formData.theme}
+                onChange={(e) => setFormData({ ...formData, theme: e.target.value as 'light' | 'dark' | 'auto' })}
+              >
+                <option value="light">Default (Light)</option>
+                <option value="dark">Dark Mode</option>
+                <option value="auto">Auto (System)</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Language
               </label>
-              <select className="input w-full">
-                <option>English</option>
-                <option>Polish</option>
-                <option>German</option>
+              <select 
+                className="input w-full"
+                value={formData.language}
+                onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+              >
+                <option value="en">English</option>
+                <option value="pl">Polish</option>
+                <option value="de">German</option>
               </select>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <button 
+          onClick={handleSaveSettings}
+          disabled={saving}
+          className="btn-primary inline-flex items-center"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5 mr-2" />
+              Save Settings
+            </>
+          )}
+        </button>
       </div>
 
       {/* Danger Zone */}
@@ -270,12 +465,60 @@ export const Settings: React.FC = () => {
                 Permanently delete your colony and all associated data
               </p>
             </div>
-            <button className="btn-error">
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="btn-error"
+            >
               Dissolve
             </button>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-error-600 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Confirm Colony Dissolution
+              </h3>
+            </div>
+            <p className="text-gray-600 mb-4">
+              This action cannot be undone. All your watchers, data, and settings will be permanently deleted.
+            </p>
+            <p className="text-sm text-gray-700 mb-2">
+              Type <span className="font-mono font-bold">{profile?.name}</span> to confirm:
+            </p>
+            <input
+              type="text"
+              className="input w-full mb-4"
+              placeholder="Enter colony name"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+            />
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDeleteConfirmText('')
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteNest}
+                disabled={deleteConfirmText !== profile?.name}
+                className="btn-error"
+              >
+                Delete Colony
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

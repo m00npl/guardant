@@ -26,6 +26,9 @@ export const Services: React.FC = () => {
 
   useEffect(() => {
     fetchWatchers()
+    // Refresh every 30 seconds to get latest status
+    const interval = setInterval(fetchWatchers, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchWatchers = async () => {
@@ -49,6 +52,35 @@ export const Services: React.FC = () => {
       toast.error(error instanceof Error ? error.message : 'Failed to load watchers')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteWatcher = async (watcherId: string, watcherName: string) => {
+    if (!confirm(`Are you sure you want to delete the watcher "${watcherName}"?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/services/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id: watcherId })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete watcher')
+      }
+
+      toast.success('Watcher deleted successfully')
+      // Refresh the list
+      fetchWatchers()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete watcher')
     }
   }
 
@@ -209,12 +241,22 @@ export const Services: React.FC = () => {
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <span>{getServiceTypeLabel(watcher.type)}</span>
                           <span>•</span>
-                          <span>{watcher.target}</span>
+                          <span className="max-w-[200px] truncate" title={watcher.target}>
+                            {watcher.target}
+                          </span>
                           <span>•</span>
                           <div className="flex items-center">
                             <Clock className="h-3 w-3 mr-1" />
-                            {watcher.interval}s interval
+                            {watcher.interval}s
                           </div>
+                          {watcher.lastCheck?.responseTime && (
+                            <>
+                              <span>•</span>
+                              <span className="text-success-600">
+                                {watcher.lastCheck.responseTime}ms
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -223,12 +265,12 @@ export const Services: React.FC = () => {
                       {/* Status */}
                       <div className="flex items-center space-x-2">
                         <div className={`w-3 h-3 rounded-full ${
-                          watcher.lastStatus === 'up' ? 'bg-success-500' :
-                          watcher.lastStatus === 'down' ? 'bg-error-500' :
-                          'bg-warning-500'
+                          watcher.lastCheck?.status === 'up' ? 'bg-success-500 animate-pulse' :
+                          watcher.lastCheck?.status === 'down' ? 'bg-error-500' :
+                          'bg-gray-300'
                         }`} />
                         <span className="text-sm capitalize">
-                          {watcher.lastStatus || 'unknown'}
+                          {watcher.lastCheck?.status || 'Pending'}
                         </span>
                       </div>
                       
@@ -246,7 +288,11 @@ export const Services: React.FC = () => {
                         >
                           <Edit3 className="h-4 w-4" />
                         </Link>
-                        <button className="p-2 text-gray-400 hover:text-error-600 transition-colors">
+                        <button 
+                          onClick={() => handleDeleteWatcher(watcher.id, watcher.name)}
+                          className="p-2 text-gray-400 hover:text-error-600 transition-colors"
+                          title="Delete watcher"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
