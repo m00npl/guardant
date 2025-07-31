@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
 
 interface TeamMember {
@@ -78,11 +79,10 @@ export const Team: React.FC = () => {
 
   const fetchTeamMembers = async () => {
     try {
-      const response = await fetch('/api/admin/team/list', {
+      const response = await apiFetch('/api/admin/team/list', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         }
       })
 

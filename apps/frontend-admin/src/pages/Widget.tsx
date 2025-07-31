@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { apiFetch } from '../utils/api';
 import toast from 'react-hot-toast';
 
 interface WidgetConfig {
@@ -50,11 +51,10 @@ export const Widget: React.FC = () => {
   const loadWidgetConfig = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/widget/config', {
+      const response = await apiFetch('/api/admin/widget/config', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(config)
       });
@@ -80,11 +80,10 @@ export const Widget: React.FC = () => {
     if (!widgetData) return;
 
     try {
-      const response = await fetch('/api/admin/widget/preview', {
+      const response = await apiFetch('/api/admin/widget/preview', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(config)
       });

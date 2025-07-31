@@ -17,6 +17,7 @@ import {
   MapPin
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
 
 export const Services: React.FC = () => {
@@ -33,11 +34,10 @@ export const Services: React.FC = () => {
 
   const fetchWatchers = async () => {
     try {
-      const response = await fetch('/api/admin/services/list', {
+      const response = await apiFetch('/api/admin/services/list', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         }
       })
 
@@ -61,11 +61,10 @@ export const Services: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/admin/services/delete', {
+      const response = await apiFetch('/api/admin/services/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ id: watcherId })
       })

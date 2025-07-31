@@ -11,6 +11,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
 
 interface DashboardStats {
@@ -62,11 +63,10 @@ export const Dashboard: React.FC = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch('/api/admin/dashboard/stats', {
+      const response = await apiFetch('/api/admin/dashboard/stats', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         }
       })
 

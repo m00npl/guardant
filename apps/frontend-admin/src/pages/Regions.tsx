@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import { 
   MapPin, 
   Activity, 
@@ -66,10 +67,8 @@ export const Regions: React.FC = () => {
   const fetchRegions = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/workers/regions', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await apiFetch('/api/admin/workers/regions', {
+        method: 'GET'
       })
       
       if (!response.ok) {

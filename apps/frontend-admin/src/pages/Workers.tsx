@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import { 
   Users, 
   UserCheck, 
@@ -36,22 +37,14 @@ export const Workers: React.FC = () => {
       setLoading(true)
       
       // Fetch pending registrations
-      const pendingRes = await fetch('/api/admin/workers/registrations/pending', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const pendingRes = await apiFetch('/api/admin/workers/registrations/pending')
       
       if (!pendingRes.ok) throw new Error('Failed to fetch pending workers')
       const pendingData = await pendingRes.json()
       setPendingWorkers(pendingData.pending || [])
       
       // Fetch approved workers
-      const approvedRes = await fetch('/api/admin/workers/registrations/approved', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const approvedRes = await apiFetch('/api/admin/workers/registrations/approved')
       
       if (!approvedRes.ok) throw new Error('Failed to fetch approved workers')
       const approvedData = await approvedRes.json()
@@ -73,10 +66,9 @@ export const Workers: React.FC = () => {
 
   const approveWorker = async (workerId: string, region: string = 'auto') => {
     try {
-      const res = await fetch(`/api/admin/workers/registrations/${workerId}/approve`, {
+      const res = await apiFetch(`/api/admin/workers/registrations/${workerId}/approve`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ region })
@@ -93,11 +85,8 @@ export const Workers: React.FC = () => {
 
   const rejectWorker = async (workerId: string) => {
     try {
-      const res = await fetch(`/api/admin/workers/registrations/${workerId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const res = await apiFetch(`/api/admin/workers/registrations/${workerId}/reject`, {
+        method: 'POST'
       })
       
       if (!res.ok) throw new Error('Failed to reject worker')

@@ -13,6 +13,7 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
 
 interface NestProfile {
@@ -63,11 +64,10 @@ export const Settings: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('/api/admin/nest/profile', {
+      const response = await apiFetch('/api/admin/nest/profile', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         }
       })
 
@@ -97,11 +97,10 @@ export const Settings: React.FC = () => {
   const handleSaveSettings = async () => {
     setSaving(true)
     try {
-      const response = await fetch('/api/admin/nest/settings', {
+      const response = await apiFetch('/api/admin/nest/settings', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           settings: formData
@@ -129,11 +128,10 @@ export const Settings: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/admin/nest/delete', {
+      const response = await apiFetch('/api/admin/nest/delete', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         }
       })
 

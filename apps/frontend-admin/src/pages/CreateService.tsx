@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import { 
   ArrowLeft, 
   Globe, 
@@ -185,11 +186,10 @@ export const CreateService: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/admin/services/create', {
+      const response = await apiFetch('/api/admin/services/create', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData),
       })

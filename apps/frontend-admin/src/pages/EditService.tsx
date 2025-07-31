@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { apiFetch } from '../utils/api'
 import { 
   ArrowLeft, 
   Globe, 
@@ -159,11 +160,10 @@ export const EditService: React.FC = () => {
 
   const fetchWatcher = async () => {
     try {
-      const response = await fetch('/api/admin/services/list', {
+      const response = await apiFetch('/api/admin/services/list', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         }
       })
 
@@ -239,11 +239,10 @@ export const EditService: React.FC = () => {
     setSaving(true)
 
     try {
-      const response = await fetch('/api/admin/services/update', {
+      const response = await apiFetch('/api/admin/services/update', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           id,
