@@ -115,7 +115,10 @@ export const Team: React.FC = () => {
       return
     }
 
-    toast.info('Team invitations will be available soon!')
+    toast('Team invitations will be available soon!', {
+      icon: '🚧',
+      duration: 3000
+    })
     setShowInviteModal(false)
     setInviteForm({ email: '', role: 'member' })
   }
@@ -125,49 +128,17 @@ export const Team: React.FC = () => {
       return
     }
 
-    try {
-      const response = await fetch('/api/admin/team/remove', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId: memberId })
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to remove team member')
-      }
-
-      toast.success('Team member removed successfully')
-      fetchTeamMembers()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove team member')
-    }
+    toast('Team member management will be available soon!', {
+      icon: '🚧',
+      duration: 3000
+    })
   }
 
   const handleUpdateRole = async (memberId: string, newRole: string) => {
-    try {
-      const response = await fetch('/api/admin/team/update-role', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId: memberId, role: newRole })
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update role')
-      }
-
-      toast.success('Role updated successfully')
-      fetchTeamMembers()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update role')
-    }
+    toast('Role updates will be available soon!', {
+      icon: '🚧',
+      duration: 3000
+    })
   }
 
   const formatDate = (dateString: string) => {
