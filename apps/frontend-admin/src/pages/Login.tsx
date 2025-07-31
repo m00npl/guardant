@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Bug, Mail, Lock, LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
@@ -120,13 +121,22 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Need a new colony?{' '}
-              <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
-                Start building your nest
-              </a>
-            </p>
+          <div className="mt-6 space-y-4">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or</span>
+              </div>
+            </div>
+            
+            <Link 
+              to="/register"
+              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Create New Account
+            </Link>
           </div>
         </div>
 
