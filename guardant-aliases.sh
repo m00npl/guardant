@@ -2,15 +2,18 @@
 
 # GuardAnt aliases for container management
 
+# Get the directory where this script is located
+GUARDANT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Basic update - pulls git and rebuilds changed containers
-alias gupdate='cd /Users/moon/guardant-new && ./update-containers.sh'
+alias gupdate="cd $GUARDANT_DIR && ./update-containers.sh"
 
 # Smart rebuild with options
-alias grebuild='cd /Users/moon/guardant-new && ./smart-rebuild.sh'
+alias grebuild="cd $GUARDANT_DIR && ./smart-rebuild.sh"
 
 # Quick commands
-alias grebuild-all='cd /Users/moon/guardant-new && ./smart-rebuild.sh --all --yes'
-alias grebuild-force='cd /Users/moon/guardant-new && ./smart-rebuild.sh --force --yes'
+alias grebuild-all="cd $GUARDANT_DIR && ./smart-rebuild.sh --all --yes"
+alias grebuild-force="cd $GUARDANT_DIR && ./smart-rebuild.sh --force --yes"
 
 # Docker compose shortcuts with proper spacing
 alias dc='docker compose'
@@ -24,7 +27,7 @@ alias dcbuild='docker compose build'
 alias guardant-status='docker compose ps'
 alias guardant-logs='docker compose logs -f'
 alias guardant-restart='docker compose restart'
-alias guardant-rebuild='cd /Users/moon/guardant-new && ./smart-rebuild.sh'
+alias guardant-rebuild="cd $GUARDANT_DIR && ./smart-rebuild.sh"
 
 # Quick access to specific service logs
 alias logs-admin='docker compose logs -f guardant-admin-api'
