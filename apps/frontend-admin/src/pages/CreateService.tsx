@@ -24,15 +24,7 @@ type MonitoringStrategy = 'closest' | 'all-selected' | 'round-robin' | 'failover
 
 export const CreateService: React.FC = () => {
   const navigate = useNavigate()
-  const authStore = useAuthStore()
-  const { token } = authStore
-  
-  console.log('🐜 Auth store state:', {
-    isAuthenticated: authStore.isAuthenticated,
-    token: authStore.token,
-    nest: authStore.nest
-  })
-  
+  const { token } = useAuthStore()
   const [formData, setFormData] = useState({
     name: '',
     type: 'web' as ServiceType,
@@ -193,9 +185,6 @@ export const CreateService: React.FC = () => {
     }
 
     try {
-      console.log('🐜 Creating watcher with token:', token)
-      console.log('🐜 Form data:', formData)
-      
       const response = await fetch('/api/admin/services/create', {
         method: 'POST',
         headers: {
@@ -206,8 +195,6 @@ export const CreateService: React.FC = () => {
       })
 
       const data = await response.json()
-      console.log('🐜 Response status:', response.status)
-      console.log('🐜 Response data:', data)
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create watcher')
@@ -216,7 +203,6 @@ export const CreateService: React.FC = () => {
       toast.success('🐜 Watcher deployed successfully!')
       navigate('/services')
     } catch (error) {
-      console.error('🐜 Error creating watcher:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to deploy watcher')
     }
   }
