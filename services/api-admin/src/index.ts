@@ -56,6 +56,7 @@ import {
 } from '/app/packages/auth-system/src/index';
 import { setupAuthManager } from './auth-setup';
 import { platformRoutes } from './platform-routes-simple';
+import { platformPointsRoutes } from './platform-points-routes';
 import {
   PaymentManager,
   RedisPaymentStorage,
@@ -2514,8 +2515,18 @@ async function startServer() {
       await next();
     });
     
+    // Add middleware to provide redis to platform points routes
+    platformPointsRoutes.use('*', async (c, next) => {
+      c.set('redis', redis);
+      c.set('storage', hybridStorage);
+      await next();
+    });
+    
     // Mount platform admin routes
     app.route('/api/admin/platform', platformRoutes);
+    
+    // Mount platform points routes
+    app.route('/api/admin/platform', platformPointsRoutes);
     
     // Mount deployment API (only in development/staging)
     if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEPLOYMENT_API === 'true') {

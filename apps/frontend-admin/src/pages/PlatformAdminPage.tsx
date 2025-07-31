@@ -68,6 +68,14 @@ export const PlatformAdminPage: React.FC = () => {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editingWorker, setEditingWorker] = useState<any>(null);
   const [showEditWorkerModal, setShowEditWorkerModal] = useState(false);
+  const [pointsConfig, setPointsConfig] = useState<any>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateConfig, setUpdateConfig] = useState({
+    repoUrl: 'https://github.com/m00npl/guardant-worker.git',
+    branch: 'main',
+    version: '',
+    delay: 5000
+  });
 
   // Redirect if not platform admin
   if (!user || user.role !== 'platform_admin') {
@@ -139,6 +147,36 @@ export const PlatformAdminPage: React.FC = () => {
         });
         const pendingData = await pendingResponse.json();
         setPendingWorkers(pendingData.data || []);
+      } else if (activeTab === 'points') {
+        // Load points configuration
+        const response = await apiFetch('/api/admin/platform/points/config');
+        const data = await response.json();
+        setPointsConfig(data.data || {
+          checkPoints: {
+            http: 1,
+            ping: 1,
+            port: 2,
+            dns: 2
+          },
+          multipliers: {
+            uptime: 1.1,
+            volume: 1.2,
+            reliability: 1.15
+          },
+          bonuses: {
+            fastResponse: { threshold: 100, multiplier: 1.1 },
+            highVolume: { threshold: 10000, multiplier: 1.2 },
+            mediumVolume: { threshold: 5000, multiplier: 1.1 },
+            longUptime: { hours: 24, multiplier: 1.1 }
+          },
+          penalties: {
+            failedCheck: 0.5
+          },
+          currency: {
+            pointValue: 0.00001,
+            cryptoRate: 0.000000001
+          }
+        });
       }
     } catch (error: any) {
       toast.error('Failed to load platform data');
@@ -265,6 +303,35 @@ export const PlatformAdminPage: React.FC = () => {
     }
   };
 
+  const handleUpdateWorkers = async () => {
+    try {
+      if (selectedWorkers.length > 0) {
+        // Update selected workers
+        await apiFetch('/api/admin/workers/update/selective', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workerIds: selectedWorkers,
+            ...updateConfig
+          })
+        });
+        toast.success(`Update command sent to ${selectedWorkers.length} workers`);
+      } else {
+        // Update all workers
+        await apiFetch('/api/admin/workers/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateConfig)
+        });
+        toast.success('Update command sent to all workers');
+      }
+      setShowUpdateModal(false);
+      setSelectedWorkers([]);
+    } catch (error: any) {
+      toast.error('Failed to send update command');
+    }
+  };
+
   const handleCreateNest = async (nestData: any) => {
     try {
       await apiFetch('/api/admin/platform/nests/create', {
@@ -376,6 +443,7 @@ export const PlatformAdminPage: React.FC = () => {
     { id: 'nests', name: 'Organizations', icon: Building2 },
     { id: 'users', name: 'Users', icon: Users },
     { id: 'workers', name: 'Worker Colony', icon: Server },
+    { id: 'points', name: 'Points Config', icon: Settings },
     { id: 'revenue', name: 'Revenue', icon: DollarSign },
     { id: 'security', name: 'Security', icon: Shield },
     { id: 'settings', name: 'Settings', icon: Settings },
@@ -760,21 +828,32 @@ export const PlatformAdminPage: React.FC = () => {
             {activeTab === 'workers' && (
               <div className="space-y-4">
                 {/* Tab Switcher */}
-                <div className="flex space-x-4 mb-4">
-                  <button
-                    onClick={() => setShowPending(false)}
-                    className={`px-4 py-2 rounded-lg ${!showPending ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                  >
-                    Approved Workers ({workers.length})
-                  </button>
-                  <button
-                    onClick={() => setShowPending(true)}
-                    className={`px-4 py-2 rounded-lg ${showPending ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} ${
-                      pendingWorkers.length > 0 ? 'animate-pulse' : ''
-                    }`}
-                  >
-                    Pending Approval ({pendingWorkers.length})
-                  </button>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={() => setShowPending(false)}
+                      className={`px-4 py-2 rounded-lg ${!showPending ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                    >
+                      Approved Workers ({workers.length})
+                    </button>
+                    <button
+                      onClick={() => setShowPending(true)}
+                      className={`px-4 py-2 rounded-lg ${showPending ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} ${
+                        pendingWorkers.length > 0 ? 'animate-pulse' : ''
+                      }`}
+                    >
+                      Pending Approval ({pendingWorkers.length})
+                    </button>
+                  </div>
+                  
+                  {!showPending && workers.length > 0 && selectedWorkers.length === 0 && (
+                    <button
+                      onClick={() => setShowUpdateModal(true)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      Update All Workers
+                    </button>
+                  )}
                 </div>
 
                 {/* Bulk Actions */}
@@ -789,6 +868,12 @@ export const PlatformAdminPage: React.FC = () => {
                         className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50"
                       >
                         Clear Selection
+                      </button>
+                      <button
+                        onClick={() => setShowUpdateModal(true)}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Update Selected
                       </button>
                       <button
                         onClick={handleBulkDelete}
@@ -962,6 +1047,284 @@ export const PlatformAdminPage: React.FC = () => {
                       No {showPending ? 'pending' : 'approved'} workers found
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Points Configuration Tab */}
+            {activeTab === 'points' && (
+              <div className="space-y-6">
+                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                  <div className="px-4 py-5 sm:p-6">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                      Points Configuration
+                    </h3>
+                    
+                    {pointsConfig && (
+                      <>
+                        {/* Base Points per Check Type */}
+                        <div className="mb-6">
+                          <h4 className="text-md font-medium text-gray-700 mb-3">Base Points per Check Type</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">HTTP Check</label>
+                              <input
+                                type="number"
+                                value={pointsConfig.checkPoints?.http || 1}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  checkPoints: {
+                                    ...pointsConfig.checkPoints,
+                                    http: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.1"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Ping Check</label>
+                              <input
+                                type="number"
+                                value={pointsConfig.checkPoints?.ping || 1}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  checkPoints: {
+                                    ...pointsConfig.checkPoints,
+                                    ping: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.1"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Port Check</label>
+                              <input
+                                type="number"
+                                value={pointsConfig.checkPoints?.port || 2}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  checkPoints: {
+                                    ...pointsConfig.checkPoints,
+                                    port: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.1"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">DNS Check</label>
+                              <input
+                                type="number"
+                                value={pointsConfig.checkPoints?.dns || 2}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  checkPoints: {
+                                    ...pointsConfig.checkPoints,
+                                    dns: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.1"
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Multipliers */}
+                        <div className="mb-6">
+                          <h4 className="text-md font-medium text-gray-700 mb-3">Performance Multipliers</h4>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Uptime Bonus</label>
+                              <input
+                                type="number"
+                                value={pointsConfig.multipliers?.uptime || 1.1}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  multipliers: {
+                                    ...pointsConfig.multipliers,
+                                    uptime: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.01"
+                                min="1"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Volume Bonus</label>
+                              <input
+                                type="number"
+                                value={pointsConfig.multipliers?.volume || 1.2}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  multipliers: {
+                                    ...pointsConfig.multipliers,
+                                    volume: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.01"
+                                min="1"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Reliability Bonus</label>
+                              <input
+                                type="number"
+                                value={pointsConfig.multipliers?.reliability || 1.15}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  multipliers: {
+                                    ...pointsConfig.multipliers,
+                                    reliability: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.01"
+                                min="1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Reputation System */}
+                        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                          <h4 className="text-md font-medium text-gray-700 mb-3">Reputation System</h4>
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Fast Response Threshold (ms)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={pointsConfig.bonuses?.fastResponse?.threshold || 100}
+                                  onChange={(e) => setPointsConfig({
+                                    ...pointsConfig,
+                                    bonuses: {
+                                      ...pointsConfig.bonuses,
+                                      fastResponse: {
+                                        ...pointsConfig.bonuses?.fastResponse,
+                                        threshold: parseInt(e.target.value)
+                                      }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Fast Response Bonus
+                                </label>
+                                <input
+                                  type="number"
+                                  value={pointsConfig.bonuses?.fastResponse?.multiplier || 1.1}
+                                  onChange={(e) => setPointsConfig({
+                                    ...pointsConfig,
+                                    bonuses: {
+                                      ...pointsConfig.bonuses,
+                                      fastResponse: {
+                                        ...pointsConfig.bonuses?.fastResponse,
+                                        multiplier: parseFloat(e.target.value)
+                                      }
+                                    }
+                                  })}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                  step="0.01"
+                                  min="1"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="text-sm text-gray-600">
+                              <p className="font-medium mb-2">Reputation levels based on total points:</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>🥉 Bronze: 0 - 1,000 points</div>
+                                <div>🥈 Silver: 1,001 - 10,000 points</div>
+                                <div>🥇 Gold: 10,001 - 50,000 points</div>
+                                <div>💎 Diamond: 50,001 - 100,000 points</div>
+                                <div className="col-span-2">🌟 Elite: 100,001+ points</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Currency Settings */}
+                        <div className="mb-6">
+                          <h4 className="text-md font-medium text-gray-700 mb-3">Currency Settings</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">
+                                Point Value (USD)
+                              </label>
+                              <input
+                                type="number"
+                                value={pointsConfig.currency?.pointValue || 0.00001}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  currency: {
+                                    ...pointsConfig.currency,
+                                    pointValue: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.000001"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">
+                                Crypto Rate
+                              </label>
+                              <input
+                                type="number"
+                                value={pointsConfig.currency?.cryptoRate || 0.000000001}
+                                onChange={(e) => setPointsConfig({
+                                  ...pointsConfig,
+                                  currency: {
+                                    ...pointsConfig.currency,
+                                    cryptoRate: parseFloat(e.target.value)
+                                  }
+                                })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                step="0.000000001"
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="flex justify-end">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await apiFetch('/api/admin/platform/points/config', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(pointsConfig)
+                                });
+                                toast.success('Points configuration saved successfully');
+                              } catch (error) {
+                                toast.error('Failed to save configuration');
+                              }
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          >
+                            Save Configuration
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -1314,6 +1677,115 @@ export const PlatformAdminPage: React.FC = () => {
                     onClick={() => {
                       setShowEditWorkerModal(false);
                       setEditingWorker(null);
+                    }}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Workers Modal */}
+      {showUpdateModal && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateWorkers();
+              }}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                        Update Workers
+                      </h3>
+                      <p className="mt-2 text-sm text-gray-500">
+                        {selectedWorkers.length > 0 
+                          ? `Update ${selectedWorkers.length} selected worker${selectedWorkers.length > 1 ? 's' : ''}`
+                          : 'Update all workers'}
+                      </p>
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label htmlFor="repo-url" className="block text-sm font-medium text-gray-700">
+                            Repository URL
+                          </label>
+                          <input
+                            type="text"
+                            id="repo-url"
+                            value={updateConfig.repoUrl}
+                            onChange={(e) => setUpdateConfig({ ...updateConfig, repoUrl: e.target.value })}
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            placeholder="https://github.com/..."
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="branch" className="block text-sm font-medium text-gray-700">
+                            Branch
+                          </label>
+                          <input
+                            type="text"
+                            id="branch"
+                            value={updateConfig.branch}
+                            onChange={(e) => setUpdateConfig({ ...updateConfig, branch: e.target.value })}
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            placeholder="main"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="version" className="block text-sm font-medium text-gray-700">
+                            Version (optional)
+                          </label>
+                          <input
+                            type="text"
+                            id="version"
+                            value={updateConfig.version}
+                            onChange={(e) => setUpdateConfig({ ...updateConfig, version: e.target.value })}
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            placeholder="v1.0.0"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="delay" className="block text-sm font-medium text-gray-700">
+                            Delay (milliseconds)
+                          </label>
+                          <input
+                            type="number"
+                            id="delay"
+                            value={updateConfig.delay}
+                            onChange={(e) => setUpdateConfig({ ...updateConfig, delay: parseInt(e.target.value) || 5000 })}
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            min="0"
+                            step="1000"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Time to wait before starting the update process
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Update Workers
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUpdateModal(false);
+                      setSelectedWorkers([]);
                     }}
                     className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                   >

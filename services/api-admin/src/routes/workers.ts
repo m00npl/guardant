@@ -15,6 +15,78 @@ const redis = new Redis({
   password: process.env.REDIS_PASSWORD,
 });
 
+// Update specific workers
+workersApi.post('/update/selective', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { workerIds, repoUrl, branch = 'main', version, delay = 5000 } = body;
+    
+    if (!workerIds || !Array.isArray(workerIds) || workerIds.length === 0) {
+      return c.json({ success: false, error: 'workerIds array is required' }, 400);
+    }
+    
+    if (!repoUrl) {
+      return c.json({ success: false, error: 'repoUrl is required' }, 400);
+    }
+    
+    logger.info('Sending update command to specific workers', { 
+      workerIds, 
+      repoUrl, 
+      branch, 
+      version 
+    });
+    
+    // Connect to RabbitMQ
+    const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+    const connection = await amqp.connect(rabbitmqUrl);
+    const channel = await connection.createChannel();
+    
+    // Send update command to specific workers
+    await channel.assertExchange('worker_commands', 'direct');
+    
+    for (const workerId of workerIds) {
+      const command = {
+        command: 'update_worker',
+        data: {
+          repoUrl,
+          branch,
+          version,
+          delay
+        },
+        timestamp: Date.now()
+      };
+      
+      // Send to specific worker queue
+      const workerQueue = `worker.${workerId}`;
+      await channel.assertQueue(workerQueue, { durable: true });
+      await channel.sendToQueue(
+        workerQueue,
+        Buffer.from(JSON.stringify(command)),
+        { persistent: true }
+      );
+      
+      logger.info('Update command sent to worker', { workerId });
+    }
+    
+    await channel.close();
+    await connection.close();
+    
+    return c.json({
+      success: true,
+      message: `Update command sent to ${workerIds.length} workers`,
+      workerIds,
+      version,
+      workersWillUpdateIn: `${delay}ms`
+    });
+  } catch (error) {
+    logger.error('Failed to send selective update command', error);
+    return c.json({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
 // Update all workers
 workersApi.post('/update', async (c) => {
   try {

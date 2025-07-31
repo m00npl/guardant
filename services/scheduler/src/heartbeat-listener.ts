@@ -1,6 +1,7 @@
 import amqp from 'amqplib';
 import Redis from 'ioredis';
 import { createLogger } from '../../../shared/logger';
+import { HeartbeatVerifier } from './heartbeat-verifier';
 
 const logger = createLogger('heartbeat-listener');
 
@@ -28,6 +29,9 @@ const redis = new Redis({
 
 export async function startHeartbeatListener(channel: amqp.Channel) {
   try {
+    // Create verifier instance
+    const verifier = new HeartbeatVerifier(redis);
+    
     // Create exchange for heartbeats
     await channel.assertExchange('worker_heartbeat', 'fanout');
     
@@ -41,21 +45,59 @@ export async function startHeartbeatListener(channel: amqp.Channel) {
       
       try {
         const heartbeat = JSON.parse(msg.content.toString());
-        const { workerId, region, version, checksCompleted } = heartbeat;
+        // Get worker's public key from registration
+        const registrationData = await redis.hget('workers:registrations', heartbeat.workerId);
+        let publicKey = null;
+        if (registrationData) {
+          const registration = JSON.parse(registrationData);
+          publicKey = registration.publicKey;
+        }
         
-        // Store in Redis with TTL
+        // Verify heartbeat
+        const verificationResult = await verifier.verifyHeartbeat(heartbeat, publicKey);
+        
+        if (!verificationResult.isValid) {
+          logger.warn('❌ Invalid heartbeat rejected', {
+            workerId: heartbeat.workerId,
+            reason: verificationResult.reason
+          });
+          
+          // Track suspicious activity
+          await redis.hincrby('workers:suspicious', heartbeat.workerId, 1);
+          
+          channel.nack(msg, false, false);
+          return;
+        }
+        
+        // Use sanitized data
+        const sanitizedData = verificationResult.sanitizedData!;
+        
+        // Store in Redis with verified data
         await redis.hset(
           'workers:heartbeat',
-          workerId,
+          sanitizedData.workerId,
           JSON.stringify({
-            region,
-            version,
-            lastSeen: Date.now(),
-            checksCompleted
+            region: sanitizedData.region,
+            version: sanitizedData.version,
+            lastSeen: sanitizedData.lastSeen,
+            checksCompleted: sanitizedData.checksCompleted,
+            totalPoints: sanitizedData.totalPoints,
+            currentPeriodPoints: sanitizedData.currentPeriodPoints,
+            earnings: sanitizedData.earnings,
+            location: sanitizedData.location,
+            signature: sanitizedData.signature,
+            verified: true,
+            verifiedAt: Date.now()
           })
         );
         
-        logger.info('💓 Received heartbeat', { workerId, version, region, checksCompleted });
+        logger.info('💓 Verified heartbeat', { 
+          workerId: sanitizedData.workerId, 
+          version: sanitizedData.version, 
+          region: sanitizedData.region, 
+          checksCompleted: sanitizedData.checksCompleted,
+          totalPoints: sanitizedData.totalPoints
+        });
         
         channel.ack(msg);
       } catch (error) {
@@ -83,6 +125,31 @@ export async function startHeartbeatListener(channel: amqp.Channel) {
         logger.error('Failed to clean up old heartbeats', error);
       }
     }, 60000);
+    
+    // Detect anomalies every 5 minutes
+    setInterval(async () => {
+      try {
+        const anomalies = await verifier.detectAnomalies();
+        if (anomalies.length > 0) {
+          logger.warn('🚨 Detected anomalies', { 
+            count: anomalies.length,
+            anomalies 
+          });
+          
+          // Store anomalies for admin review
+          await redis.setex(
+            'workers:anomalies:latest',
+            3600, // 1 hour TTL
+            JSON.stringify({
+              timestamp: Date.now(),
+              anomalies
+            })
+          );
+        }
+      } catch (error) {
+        logger.error('Failed to detect anomalies', error);
+      }
+    }, 300000); // 5 minutes
     
   } catch (error) {
     logger.error('Failed to start heartbeat listener', error);
