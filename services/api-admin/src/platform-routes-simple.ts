@@ -640,11 +640,11 @@ platformRoutes.post('/users/:userId/status', async (c) => {
 // Update nest status
 platformRoutes.post('/nests/:nestId/status', async (c) => {
   try {
+    const redis = c.get('redis');
     const nestId = c.req.param('nestId');
     const body = await c.req.json();
     const { isActive, reason } = body;
     
-    // Use imported redis instance
     const nestKey = `nest:${nestId}`;
     
     const nestData = await redis.get(nestKey);
@@ -661,9 +661,16 @@ platformRoutes.post('/nests/:nestId/status', async (c) => {
     
     await redis.set(nestKey, JSON.stringify(nest));
     
-    // If deactivating, also deactivate services
+    // If deactivating, also deactivate services using SCAN
     if (!isActive) {
-      const serviceKeys = await redis.keys(`service:${nestId}:*`);
+      const serviceKeys = [];
+      let cursor = '0';
+      do {
+        const [newCursor, keys] = await redis.scan(cursor, 'MATCH', `service:${nestId}:*`, 'COUNT', 100);
+        cursor = newCursor;
+        serviceKeys.push(...keys);
+      } while (cursor !== '0');
+      
       for (const key of serviceKeys) {
         const serviceData = await redis.get(key);
         if (serviceData) {
@@ -680,6 +687,214 @@ platformRoutes.post('/nests/:nestId/status', async (c) => {
     });
   } catch (error: any) {
     console.error('Update nest status error:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Get pending worker registrations  
+platformRoutes.post('/workers/pending', async (c) => {
+  try {
+    const redis = c.get('redis');
+    
+    // Get pending workers
+    const pendingIds = await redis.zrange('workers:pending', 0, -1, 'WITHSCORES');
+    const pending = [];
+    
+    for (let i = 0; i < pendingIds.length; i += 2) {
+      const workerId = pendingIds[i];
+      const timestamp = parseInt(pendingIds[i + 1]);
+      
+      const registration = await redis.hget('workers:registrations', workerId);
+      if (registration) {
+        const data = JSON.parse(registration);
+        pending.push({
+          ...data,
+          pendingSince: new Date(timestamp).toISOString(),
+          ownerEmail: data.ownerEmail || 'unknown',
+        });
+      }
+    }
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: pending
+    });
+  } catch (error: any) {
+    console.error('Failed to get pending registrations:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Approve worker registration
+platformRoutes.post('/workers/:workerId/approve', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const workerId = c.req.param('workerId');
+    const { region = 'auto' } = await c.req.json();
+    const user = getAuthUser(c);
+    
+    // Get registration
+    const registration = await redis.hget('workers:registrations', workerId);
+    if (!registration) {
+      return c.json<ApiResponse>({ 
+        success: false,
+        error: 'Worker not found' 
+      }, 404);
+    }
+    
+    const config = JSON.parse(registration);
+    if (config.approved) {
+      return c.json<ApiResponse>({ 
+        success: false,
+        error: 'Worker already approved' 
+      }, 400);
+    }
+    
+    // Generate worker credentials
+    const workerUsername = `worker-${config.workerId}`;
+    const workerPassword = crypto.randomBytes(32).toString('base64').replace(/[+/=]/g, '');
+    
+    // Update registration with approval
+    config.approved = true;
+    config.approvedAt = Date.now();
+    config.approvedBy = user.email;
+    config.workerUsername = workerUsername;
+    config.workerPassword = workerPassword;
+    config.rabbitmqUrl = `amqp://${workerUsername}:${workerPassword}@${process.env.RABBITMQ_HOST || 'rabbit.guardant.me'}:5672`;
+    config.region = region;
+    
+    // Save updated config
+    await redis.hset('workers:registrations', workerId, JSON.stringify(config));
+    
+    // Remove from pending
+    await redis.zrem('workers:pending', workerId);
+    
+    // Note: RabbitMQ user creation would be handled by the main workers API
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: {
+        message: 'Worker approved',
+        workerId,
+        config: {
+          workerId: config.workerId,
+          rabbitmqUrl: config.rabbitmqUrl,
+          region: config.region,
+        }
+      }
+    });
+  } catch (error: any) {
+    console.error('Failed to approve worker:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Reject worker registration
+platformRoutes.post('/workers/:workerId/reject', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const workerId = c.req.param('workerId');
+    const user = getAuthUser(c);
+    
+    // Get registration
+    const registration = await redis.hget('workers:registrations', workerId);
+    if (!registration) {
+      return c.json<ApiResponse>({ 
+        success: false,
+        error: 'Worker not found' 
+      }, 404);
+    }
+    
+    const config = JSON.parse(registration);
+    
+    // Remove from registrations
+    await redis.hdel('workers:registrations', workerId);
+    
+    // Remove from pending
+    await redis.zrem('workers:pending', workerId);
+    
+    // Remove from owner's list
+    if (config.ownerEmail) {
+      await redis.srem(`workers:by-owner:${config.ownerEmail}`, workerId);
+    }
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: {
+        message: 'Worker rejected',
+        workerId
+      }
+    });
+  } catch (error: any) {
+    console.error('Failed to reject worker:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Update worker (name and location)
+platformRoutes.put('/workers/:workerId', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const workerId = c.req.param('workerId');
+    const body = await c.req.json();
+    const { displayName, region } = body;
+    
+    // Get worker registration
+    const registration = await redis.hget('workers:registrations', workerId);
+    if (!registration) {
+      return c.json<ApiResponse>({ 
+        success: false,
+        error: 'Worker not found' 
+      }, 404);
+    }
+    
+    const config = JSON.parse(registration);
+    
+    // Update worker data
+    if (displayName !== undefined) {
+      config.displayName = displayName;
+    }
+    if (region !== undefined) {
+      config.region = region;
+    }
+    config.updatedAt = Date.now();
+    
+    // Save updated config
+    await redis.hset('workers:registrations', workerId, JSON.stringify(config));
+    
+    // Also update heartbeat data if exists
+    const heartbeatData = await redis.hget('workers:heartbeat', workerId);
+    if (heartbeatData) {
+      const heartbeat = JSON.parse(heartbeatData);
+      if (region !== undefined) {
+        heartbeat.region = region;
+      }
+      await redis.hset('workers:heartbeat', workerId, JSON.stringify(heartbeat));
+    }
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: {
+        message: 'Worker updated successfully',
+        workerId,
+        displayName: config.displayName,
+        region: config.region
+      }
+    });
+  } catch (error: any) {
+    console.error('Failed to update worker:', error);
     return c.json<ApiResponse>({ 
       success: false, 
       error: error.message 
