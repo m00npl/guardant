@@ -75,6 +75,9 @@ export const PlatformAdminPage: React.FC = () => {
           method: 'POST'
         });
         const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load stats');
+        }
         setStats(data.data);
       } else if (activeTab === 'nests') {
         const response = await apiFetch('/api/admin/platform/nests/list', {
@@ -86,7 +89,10 @@ export const PlatformAdminPage: React.FC = () => {
           })
         });
         const data = await response.json();
-        setNests(data.data);
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load nests');
+        }
+        setNests(data.data || []);
       } else if (activeTab === 'users') {
         const response = await apiFetch('/api/admin/platform/users/list', {
           method: 'POST',
@@ -340,7 +346,7 @@ export const PlatformAdminPage: React.FC = () => {
             {activeTab === 'nests' && (
               <div className="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul className="divide-y divide-gray-200">
-                  {nests.map((nest) => (
+                  {nests && nests.length > 0 ? nests.map((nest) => (
                     <li key={nest.id}>
                       <div className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
@@ -379,7 +385,11 @@ export const PlatformAdminPage: React.FC = () => {
                         </div>
                       </div>
                     </li>
-                  ))}
+                  )) : (
+                    <li className="text-center py-8 text-gray-500">
+                      No organizations found
+                    </li>
+                  )}
                 </ul>
               </div>
             )}
@@ -388,7 +398,7 @@ export const PlatformAdminPage: React.FC = () => {
             {activeTab === 'users' && (
               <div className="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul className="divide-y divide-gray-200">
-                  {users.map((user) => (
+                  {users && users.length > 0 ? users.map((user) => (
                     <li key={user.id}>
                       <div className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
@@ -423,7 +433,11 @@ export const PlatformAdminPage: React.FC = () => {
                         </div>
                       </div>
                     </li>
-                  ))}
+                  )) : (
+                    <li className="text-center py-8 text-gray-500">
+                      No users found
+                    </li>
+                  )}
                 </ul>
               </div>
             )}

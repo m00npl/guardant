@@ -1580,6 +1580,21 @@ app.post('/api/admin/services/delete', async (c) => {
   }
 });
 
+// Service count endpoint
+app.post('/api/admin/services/count', async (c) => {
+  try {
+    const nestId = extractNestId(c);
+    const services = await hybridStorage.getServicesByNest(nestId);
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: { count: services.length }
+    });
+  } catch (error: any) {
+    return c.json<ApiResponse>({ success: false, error: error.message }, 500);
+  }
+});
+
 // Service detail endpoint
 app.get('/api/admin/services/:id/detail', async (c) => {
   try {

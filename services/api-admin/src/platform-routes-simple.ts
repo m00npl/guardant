@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getAuthUser } from '/app/packages/auth-system/src/index';
 import type { ApiResponse } from './index';
+import { redis } from './storage/redis';
 
 export const platformRoutes = new Hono();
 
@@ -22,8 +23,7 @@ platformRoutes.use('/*', requirePlatformAdmin);
 // Get platform statistics - simplified version
 platformRoutes.post('/stats', async (c) => {
   try {
-    const storage = c.get('storage');
-    const redis = c.get('redis');
+    // Use imported redis instance
     
     // Get all nests from Redis
     const nestKeys = await redis.keys('nest:*');
@@ -127,7 +127,7 @@ platformRoutes.post('/stats', async (c) => {
 // Get all nests - simplified version
 platformRoutes.post('/nests/list', async (c) => {
   try {
-    const redis = c.get('redis');
+    // Use imported redis instance
     const body = await c.req.json();
     const { page = 1, limit = 20 } = body;
     
@@ -180,7 +180,7 @@ platformRoutes.post('/nests/list', async (c) => {
 // Get all users - simplified version
 platformRoutes.post('/users/list', async (c) => {
   try {
-    const redis = c.get('redis');
+    // Use imported redis instance
     const body = await c.req.json();
     const { page = 1, limit = 20 } = body;
     
@@ -231,7 +231,7 @@ platformRoutes.post('/users/:userId/status', async (c) => {
     const body = await c.req.json();
     const { isActive, reason } = body;
     
-    const redis = c.get('redis');
+    // Use imported redis instance
     const userKey = `auth:user:${userId}`;
     
     const userData = await redis.get(userKey);
@@ -268,7 +268,7 @@ platformRoutes.post('/nests/:nestId/status', async (c) => {
     const body = await c.req.json();
     const { isActive, reason } = body;
     
-    const redis = c.get('redis');
+    // Use imported redis instance
     const nestKey = `nest:${nestId}`;
     
     const nestData = await redis.get(nestKey);
