@@ -14,7 +14,10 @@ import {
   Server,
   Pause,
   Play,
-  Trash2
+  Trash2,
+  Edit,
+  Plus,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -53,6 +56,12 @@ export const PlatformAdminPage: React.FC = () => {
   const [workers, setWorkers] = useState<any[]>([]);
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showEditNestModal, setShowEditNestModal] = useState(false);
+  const [showCreateNestModal, setShowCreateNestModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [editingNest, setEditingNest] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<any>(null);
 
   // Redirect if not platform admin
   if (!user || user.role !== 'platform_admin') {
@@ -211,6 +220,98 @@ export const PlatformAdminPage: React.FC = () => {
     }
   };
 
+  // Organization CRUD operations
+  const handleCreateNest = async (nestData: any) => {
+    try {
+      await apiFetch('/api/admin/platform/nests/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nestData)
+      });
+      toast.success('Organization created successfully');
+      setShowCreateNestModal(false);
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to create organization');
+    }
+  };
+
+  const handleUpdateNest = async (nestId: string, nestData: any) => {
+    try {
+      await apiFetch(`/api/admin/platform/nests/${nestId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nestData)
+      });
+      toast.success('Organization updated successfully');
+      setShowEditNestModal(false);
+      setEditingNest(null);
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to update organization');
+    }
+  };
+
+  const handleDeleteNest = async (nestId: string) => {
+    if (!confirm('Are you sure you want to delete this organization? This will delete all associated data.')) return;
+    
+    try {
+      await apiFetch(`/api/admin/platform/nests/${nestId}`, {
+        method: 'DELETE'
+      });
+      toast.success('Organization deleted successfully');
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to delete organization');
+    }
+  };
+
+  // User CRUD operations
+  const handleCreateUser = async (userData: any) => {
+    try {
+      await apiFetch('/api/admin/platform/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      toast.success('User created successfully');
+      setShowCreateUserModal(false);
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to create user');
+    }
+  };
+
+  const handleUpdateUser = async (userId: string, userData: any) => {
+    try {
+      await apiFetch(`/api/admin/platform/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      toast.success('User updated successfully');
+      setShowEditUserModal(false);
+      setEditingUser(null);
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to update user');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      await apiFetch(`/api/admin/platform/users/${userId}`, {
+        method: 'DELETE'
+      });
+      toast.success('User deleted successfully');
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to delete user');
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'nests', label: 'Organizations', icon: Building2 },
@@ -344,8 +445,19 @@ export const PlatformAdminPage: React.FC = () => {
 
             {/* Organizations Tab */}
             {activeTab === 'nests' && (
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
+              <div>
+                <div className="mb-4 flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Organizations Management</h3>
+                  <button
+                    onClick={() => setShowCreateNestModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Organization
+                  </button>
+                </div>
+                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                  <ul className="divide-y divide-gray-200">
                   {nests && nests.length > 0 ? nests.map((nest) => (
                     <li key={nest.id}>
                       <div className="px-4 py-4 sm:px-6">
@@ -364,16 +476,35 @@ export const PlatformAdminPage: React.FC = () => {
                             }`}>
                               {nest.subscription?.tier || 'Free'}
                             </span>
-                            <button
-                              onClick={() => handleNestStatusChange(nest.id, !nest.isActive)}
-                              className={`px-3 py-1 text-xs font-medium rounded ${
-                                nest.isActive
-                                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
-                              }`}
-                            >
-                              {nest.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingNest(nest);
+                                  setShowEditNestModal(true);
+                                }}
+                                className="p-1 text-blue-600 hover:text-blue-900"
+                                title="Edit Organization"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleNestStatusChange(nest.id, !nest.isActive)}
+                                className={`px-3 py-1 text-xs font-medium rounded ${
+                                  nest.isActive
+                                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                }`}
+                              >
+                                {nest.isActive ? 'Deactivate' : 'Activate'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteNest(nest.id)}
+                                className="p-1 text-red-600 hover:text-red-900"
+                                title="Delete Organization"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <div className="mt-2 text-sm text-gray-500">
@@ -391,13 +522,25 @@ export const PlatformAdminPage: React.FC = () => {
                     </li>
                   )}
                 </ul>
+                </div>
               </div>
             )}
 
             {/* Users Tab */}
             {activeTab === 'users' && (
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
+              <div>
+                <div className="mb-4 flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Users Management</h3>
+                  <button
+                    onClick={() => setShowCreateUserModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create User
+                  </button>
+                </div>
+                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                  <ul className="divide-y divide-gray-200">
                   {users && users.length > 0 ? users.map((user) => (
                     <li key={user.id}>
                       <div className="px-4 py-4 sm:px-6">
@@ -414,16 +557,35 @@ export const PlatformAdminPage: React.FC = () => {
                             }`}>
                               {user.role}
                             </span>
-                            <button
-                              onClick={() => handleUserStatusChange(user.id, !user.isActive)}
-                              className={`px-3 py-1 text-xs font-medium rounded ${
-                                user.isActive
-                                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
-                              }`}
-                            >
-                              {user.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingUser(user);
+                                  setShowEditUserModal(true);
+                                }}
+                                className="p-1 text-blue-600 hover:text-blue-900"
+                                title="Edit User"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleUserStatusChange(user.id, !user.isActive)}
+                                className={`px-3 py-1 text-xs font-medium rounded ${
+                                  user.isActive
+                                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                }`}
+                              >
+                                {user.isActive ? 'Deactivate' : 'Activate'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="p-1 text-red-600 hover:text-red-900"
+                                title="Delete User"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <div className="mt-2 text-sm text-gray-500">
@@ -575,6 +737,257 @@ export const PlatformAdminPage: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Create/Edit Organization Modal */}
+      {(showCreateNestModal || showEditNestModal) && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const data = {
+                  name: formData.get('name') as string,
+                  subdomain: formData.get('subdomain') as string,
+                  ownerEmail: formData.get('ownerEmail') as string,
+                  tier: formData.get('tier') as string,
+                };
+                if (editingNest) {
+                  handleUpdateNest(editingNest.id, data);
+                } else {
+                  handleCreateNest(data);
+                }
+              }}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                        {editingNest ? 'Edit Organization' : 'Create Organization'}
+                      </h3>
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                            Organization Name
+                          </label>
+                          <input
+                            type="text"
+                            name="name"
+                            id="name"
+                            defaultValue={editingNest?.name}
+                            required
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="subdomain" className="block text-sm font-medium text-gray-700">
+                            Subdomain
+                          </label>
+                          <input
+                            type="text"
+                            name="subdomain"
+                            id="subdomain"
+                            defaultValue={editingNest?.subdomain}
+                            required
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="ownerEmail" className="block text-sm font-medium text-gray-700">
+                            Owner Email
+                          </label>
+                          <input
+                            type="email"
+                            name="ownerEmail"
+                            id="ownerEmail"
+                            defaultValue={editingNest?.ownerEmail}
+                            required
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="tier" className="block text-sm font-medium text-gray-700">
+                            Subscription Tier
+                          </label>
+                          <select
+                            name="tier"
+                            id="tier"
+                            defaultValue={editingNest?.subscription?.tier || 'free'}
+                            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          >
+                            <option value="free">Free</option>
+                            <option value="pro">Pro</option>
+                            <option value="unlimited">Unlimited</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    {editingNest ? 'Update' : 'Create'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateNestModal(false);
+                      setShowEditNestModal(false);
+                      setEditingNest(null);
+                    }}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create/Edit User Modal */}
+      {(showCreateUserModal || showEditUserModal) && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const data = {
+                  name: formData.get('name') as string,
+                  email: formData.get('email') as string,
+                  password: formData.get('password') as string,
+                  role: formData.get('role') as string,
+                  nestId: formData.get('nestId') as string,
+                };
+                if (editingUser) {
+                  handleUpdateUser(editingUser.id, data);
+                } else {
+                  handleCreateUser(data);
+                }
+              }}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                        {editingUser ? 'Edit User' : 'Create User'}
+                      </h3>
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label htmlFor="user-name" className="block text-sm font-medium text-gray-700">
+                            Name
+                          </label>
+                          <input
+                            type="text"
+                            name="name"
+                            id="user-name"
+                            defaultValue={editingUser?.name}
+                            required
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="user-email" className="block text-sm font-medium text-gray-700">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            id="user-email"
+                            defaultValue={editingUser?.email}
+                            required
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                          />
+                        </div>
+                        {!editingUser && (
+                          <div>
+                            <label htmlFor="user-password" className="block text-sm font-medium text-gray-700">
+                              Password
+                            </label>
+                            <input
+                              type="password"
+                              name="password"
+                              id="user-password"
+                              required
+                              className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <label htmlFor="user-role" className="block text-sm font-medium text-gray-700">
+                            Role
+                          </label>
+                          <select
+                            name="role"
+                            id="user-role"
+                            defaultValue={editingUser?.role || 'viewer'}
+                            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          >
+                            <option value="owner">Owner</option>
+                            <option value="admin">Admin</option>
+                            <option value="editor">Editor</option>
+                            <option value="viewer">Viewer</option>
+                            <option value="platform_admin">Platform Admin</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor="user-nestId" className="block text-sm font-medium text-gray-700">
+                            Organization
+                          </label>
+                          <select
+                            name="nestId"
+                            id="user-nestId"
+                            defaultValue={editingUser?.nestId}
+                            required
+                            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          >
+                            <option value="">Select Organization</option>
+                            {nests.map((nest) => (
+                              <option key={nest.id} value={nest.id}>
+                                {nest.name} ({nest.subdomain})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    {editingUser ? 'Update' : 'Create'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateUserModal(false);
+                      setShowEditUserModal(false);
+                      setEditingUser(null);
+                    }}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

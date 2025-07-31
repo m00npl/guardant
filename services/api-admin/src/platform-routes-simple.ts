@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getAuthUser } from '/app/packages/auth-system/src/index';
 import type { ApiResponse } from './index';
+import * as crypto from 'crypto';
 
 export const platformRoutes = new Hono();
 
@@ -269,14 +270,318 @@ platformRoutes.post('/users/list', async (c) => {
   }
 });
 
+// Create new organization
+platformRoutes.post('/nests/create', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const body = await c.req.json();
+    const { name, subdomain, ownerEmail, tier = 'free' } = body;
+    
+    // Generate nest ID
+    const nestId = crypto.randomUUID();
+    const now = Date.now();
+    
+    // Create nest object
+    const nest = {
+      id: nestId,
+      name,
+      subdomain,
+      ownerEmail,
+      createdAt: now,
+      updatedAt: now,
+      isActive: true,
+      subscription: {
+        tier,
+        status: 'active',
+        servicesLimit: tier === 'free' ? 3 : tier === 'pro' ? 10 : 999999,
+        teamMembersLimit: tier === 'free' ? 1 : tier === 'pro' ? 5 : 999999,
+      }
+    };
+    
+    // Store in Redis
+    await redis.set(`nest:${nestId}`, JSON.stringify(nest));
+    await redis.set(`nest:subdomain:${subdomain}`, nestId);
+    await redis.set(`nest:email:${ownerEmail}`, nestId);
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: nest
+    });
+  } catch (error: any) {
+    console.error('Create nest error:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Update organization
+platformRoutes.put('/nests/:nestId', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const nestId = c.req.param('nestId');
+    const body = await c.req.json();
+    
+    const nestData = await redis.get(`nest:${nestId}`);
+    if (!nestData) {
+      return c.json<ApiResponse>({ 
+        success: false, 
+        error: 'Organization not found' 
+      }, 404);
+    }
+    
+    const nest = JSON.parse(nestData);
+    const oldSubdomain = nest.subdomain;
+    const oldEmail = nest.ownerEmail;
+    
+    // Update nest data
+    Object.assign(nest, {
+      ...body,
+      updatedAt: Date.now()
+    });
+    
+    // Update Redis keys
+    await redis.set(`nest:${nestId}`, JSON.stringify(nest));
+    
+    // Update subdomain mapping if changed
+    if (body.subdomain && body.subdomain !== oldSubdomain) {
+      await redis.del(`nest:subdomain:${oldSubdomain}`);
+      await redis.set(`nest:subdomain:${body.subdomain}`, nestId);
+    }
+    
+    // Update email mapping if changed
+    if (body.ownerEmail && body.ownerEmail !== oldEmail) {
+      await redis.del(`nest:email:${oldEmail}`);
+      await redis.set(`nest:email:${body.ownerEmail}`, nestId);
+    }
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: nest
+    });
+  } catch (error: any) {
+    console.error('Update nest error:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Delete organization
+platformRoutes.delete('/nests/:nestId', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const nestId = c.req.param('nestId');
+    
+    const nestData = await redis.get(`nest:${nestId}`);
+    if (!nestData) {
+      return c.json<ApiResponse>({ 
+        success: false, 
+        error: 'Organization not found' 
+      }, 404);
+    }
+    
+    const nest = JSON.parse(nestData);
+    
+    // Delete all related data
+    await redis.del(`nest:${nestId}`);
+    await redis.del(`nest:subdomain:${nest.subdomain}`);
+    await redis.del(`nest:email:${nest.ownerEmail}`);
+    
+    // Delete all services for this nest
+    const serviceKeys = [];
+    let cursor = '0';
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, 'MATCH', `service:${nestId}:*`, 'COUNT', 100);
+      cursor = newCursor;
+      serviceKeys.push(...keys);
+    } while (cursor !== '0');
+    
+    if (serviceKeys.length > 0) {
+      await redis.del(...serviceKeys);
+    }
+    
+    return c.json<ApiResponse>({
+      success: true,
+      message: 'Organization deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Delete nest error:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Create new user
+platformRoutes.post('/users/create', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const body = await c.req.json();
+    const { name, email, password, role = 'viewer', nestId } = body;
+    
+    // Generate user ID
+    const userId = crypto.randomUUID();
+    const now = Date.now();
+    
+    // Hash password
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    // Create user object
+    const user = {
+      id: userId,
+      nestId,
+      name,
+      email,
+      role,
+      passwordHash,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    // Store in Redis
+    await redis.set(`auth:user:${userId}`, JSON.stringify(user));
+    await redis.set(`auth:user:email:${email}`, userId);
+    
+    // Add to nest users if not platform_admin
+    if (role !== 'platform_admin' && nestId) {
+      await redis.hset(`nest:${nestId}:users`, userId, JSON.stringify({
+        id: userId,
+        role,
+        joinedAt: now
+      }));
+    }
+    
+    // Don't send password hash back
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: userWithoutPassword
+    });
+  } catch (error: any) {
+    console.error('Create user error:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Update user
+platformRoutes.put('/users/:userId', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const userId = c.req.param('userId');
+    const body = await c.req.json();
+    
+    const userData = await redis.get(`auth:user:${userId}`);
+    if (!userData) {
+      return c.json<ApiResponse>({ 
+        success: false, 
+        error: 'User not found' 
+      }, 404);
+    }
+    
+    const user = JSON.parse(userData);
+    const oldEmail = user.email;
+    
+    // Update user data (don't update password here)
+    delete body.password; // Remove password from update
+    Object.assign(user, {
+      ...body,
+      updatedAt: Date.now()
+    });
+    
+    // Update Redis keys
+    await redis.set(`auth:user:${userId}`, JSON.stringify(user));
+    
+    // Update email mapping if changed
+    if (body.email && body.email !== oldEmail) {
+      await redis.del(`auth:user:email:${oldEmail}`);
+      await redis.set(`auth:user:email:${body.email}`, userId);
+    }
+    
+    // Don't send password hash back
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: userWithoutPassword
+    });
+  } catch (error: any) {
+    console.error('Update user error:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
+// Delete user
+platformRoutes.delete('/users/:userId', async (c) => {
+  try {
+    const redis = c.get('redis');
+    const userId = c.req.param('userId');
+    
+    const userData = await redis.get(`auth:user:${userId}`);
+    if (!userData) {
+      return c.json<ApiResponse>({ 
+        success: false, 
+        error: 'User not found' 
+      }, 404);
+    }
+    
+    const user = JSON.parse(userData);
+    
+    // Delete user data
+    await redis.del(`auth:user:${userId}`);
+    await redis.del(`auth:user:email:${user.email}`);
+    
+    // Remove from nest users if applicable
+    if (user.nestId) {
+      await redis.hdel(`nest:${user.nestId}:users`, userId);
+    }
+    
+    // Delete user sessions
+    const sessionKeys = [];
+    let cursor = '0';
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, 'MATCH', `session:*:${userId}`, 'COUNT', 100);
+      cursor = newCursor;
+      sessionKeys.push(...keys);
+    } while (cursor !== '0');
+    
+    if (sessionKeys.length > 0) {
+      await redis.del(...sessionKeys);
+    }
+    
+    return c.json<ApiResponse>({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Delete user error:', error);
+    return c.json<ApiResponse>({ 
+      success: false, 
+      error: error.message 
+    }, 500);
+  }
+});
+
 // Update user status
 platformRoutes.post('/users/:userId/status', async (c) => {
   try {
+    const redis = c.get('redis');
     const userId = c.req.param('userId');
     const body = await c.req.json();
     const { isActive, reason } = body;
     
-    // Use imported redis instance
     const userKey = `auth:user:${userId}`;
     
     const userData = await redis.get(userKey);
