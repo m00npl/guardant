@@ -47,6 +47,13 @@ export const Settings: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [profile, setProfile] = useState<NestProfile | null>(null)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [changingPassword, setChangingPassword] = useState(false)
   const [formData, setFormData] = useState({
     publicStatusPage: true,
     customDomain: '',
@@ -146,6 +153,36 @@ export const Settings: React.FC = () => {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete colony')
     }
+  }
+
+  const handlePasswordChange = async () => {
+    // Validate form
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast.error('Please fill in all password fields')
+      return
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters long')
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('New passwords do not match')
+      return
+    }
+
+    // Show coming soon message for now
+    toast('Password change functionality will be available soon!', {
+      icon: '🚧',
+      duration: 3000
+    })
+    setShowPasswordModal(false)
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    })
   }
 
   if (loading) {
@@ -291,6 +328,52 @@ export const Settings: React.FC = () => {
 
       {/* Settings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Security Settings */}
+        <div className="card p-6">
+          <div className="flex items-center mb-4">
+            <Shield className="h-6 w-6 text-primary-600 mr-3" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Security
+            </h3>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                className="input w-full bg-gray-50"
+                value={profile?.email || ''}
+                disabled
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="btn-secondary w-full inline-flex items-center justify-center"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Change Password
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                API Keys
+              </label>
+              <button
+                className="btn-secondary w-full inline-flex items-center justify-center"
+                disabled
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Manage API Keys (Coming Soon)
+              </button>
+            </div>
+          </div>
+        </div>
         {/* Status Page Settings */}
         <div className="card p-6">
           <div className="flex items-center mb-4">
@@ -512,6 +595,104 @@ export const Settings: React.FC = () => {
                 className="btn-error"
               >
                 Delete Colony
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <Key className="h-6 w-6 text-primary-600 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Change Password
+              </h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  className="input w-full"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({
+                    ...passwordForm,
+                    currentPassword: e.target.value
+                  })}
+                  placeholder="Enter current password"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  className="input w-full"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({
+                    ...passwordForm,
+                    newPassword: e.target.value
+                  })}
+                  placeholder="Enter new password (min 8 characters)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  className="input w-full"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({
+                    ...passwordForm,
+                    confirmPassword: e.target.value
+                  })}
+                  placeholder="Confirm new password"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false)
+                  setPasswordForm({
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                  })
+                }}
+                className="btn-secondary"
+                disabled={changingPassword}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordChange}
+                disabled={changingPassword}
+                className="btn-primary inline-flex items-center"
+              >
+                {changingPassword ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Changing...
+                  </>
+                ) : (
+                  <>
+                    <Key className="h-4 w-4 mr-2" />
+                    Change Password
+                  </>
+                )}
               </button>
             </div>
           </div>
