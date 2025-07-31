@@ -108,12 +108,13 @@ export class WorkerAntLocationDetector {
    * Parse IPAPI response
    */
   private parseIPAPI(data: any): IPGeolocation {
+    console.log('📍 IPAPI data:', { city: data.city, country: data.country_name, country_code: data.country_code });
     return {
       ip: data.ip,
-      city: data.city,
-      region: data.region,
-      country: data.country_name,
-      country_code: data.country_code,
+      city: data.city || 'Unknown',
+      region: data.region || data.region_code || 'Unknown',
+      country: data.country_name || 'Unknown',
+      country_code: data.country_code || data.country || 'XX',
       continent: this.getContinent(data.continent_code),
       timezone: data.timezone,
       loc: `${data.latitude},${data.longitude}`,
@@ -126,12 +127,13 @@ export class WorkerAntLocationDetector {
    * Parse IPInfo response
    */
   private parseIPInfo(data: any): IPGeolocation {
+    console.log('📍 IPInfo data:', { city: data.city, country: data.country, region: data.region });
     return {
       ip: data.ip,
-      city: data.city,
-      region: data.region,
-      country: data.country,
-      country_code: data.country,
+      city: data.city || 'Unknown',
+      region: data.region || 'Unknown',
+      country: data.country || 'Unknown',
+      country_code: data.country || 'XX',
       continent: this.getContinent(data.country),
       timezone: data.timezone,
       loc: data.loc,
@@ -188,7 +190,12 @@ export class WorkerAntLocationDetector {
    */
   private generateRegionCode(geo: IPGeolocation): string {
     // Try to generate AWS-style region code
-    const countryCode = geo.country_code.toLowerCase();
+    const countryCode = geo.country_code?.toLowerCase();
+    
+    if (!countryCode) {
+      console.warn('⚠️ No country code available for region generation');
+      return `unknown-${geo.city?.toLowerCase().replace(/\s+/g, '-') || 'location'}`;
+    }
     
     // Map countries to regions
     const regionMap: Record<string, string> = {
@@ -206,6 +213,20 @@ export class WorkerAntLocationDetector {
       'it': 'eu-south-1',
       'es': 'eu-south-2',
       'pl': 'eu-central-2',
+      'fi': 'eu-north-1',  // Finland
+      'dk': 'eu-north-1',  // Denmark
+      'no': 'eu-north-1',  // Norway
+      'nl': 'eu-west-1',   // Netherlands
+      'be': 'eu-west-1',   // Belgium
+      'ch': 'eu-central-1', // Switzerland
+      'at': 'eu-central-1', // Austria
+      'cz': 'eu-central-2', // Czech Republic
+      'sk': 'eu-central-2', // Slovakia
+      'hu': 'eu-central-2', // Hungary
+      'ro': 'eu-central-2', // Romania
+      'bg': 'eu-central-2', // Bulgaria
+      'gr': 'eu-south-1',   // Greece
+      'pt': 'eu-south-2',   // Portugal
       
       // Asia Pacific
       'sg': 'ap-southeast-1',
@@ -214,6 +235,14 @@ export class WorkerAntLocationDetector {
       'kr': 'ap-northeast-2',
       'in': 'ap-south-1',
       'cn': 'cn-north-1',
+      'hk': 'ap-east-1',    // Hong Kong
+      'tw': 'ap-northeast-1', // Taiwan
+      'th': 'ap-southeast-1', // Thailand
+      'my': 'ap-southeast-1', // Malaysia
+      'id': 'ap-southeast-1', // Indonesia
+      'ph': 'ap-southeast-1', // Philippines
+      'vn': 'ap-southeast-1', // Vietnam
+      'nz': 'ap-southeast-2', // New Zealand
       
       // Middle East & Africa
       'ae': 'me-south-1',
