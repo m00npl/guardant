@@ -760,6 +760,45 @@ platformRoutes.post('/workers/:workerId/approve', async (c) => {
     const workerUsername = `worker-${config.workerId}`;
     const workerPassword = crypto.randomBytes(32).toString('base64').replace(/[+/=]/g, '');
     
+    // Create RabbitMQ user for this worker
+    try {
+      const axios = (await import('axios')).default;
+      const rabbitmqMgmtUrl = process.env.RABBITMQ_MANAGEMENT_URL || 'http://rabbitmq:15672';
+      const rabbitmqAuth = {
+        username: process.env.RABBITMQ_ADMIN_USER || 'guardant',
+        password: process.env.RABBITMQ_ADMIN_PASS || 'guardant123',
+      };
+      
+      // Create user
+      await axios.put(
+        `${rabbitmqMgmtUrl}/api/users/${workerUsername}`,
+        {
+          password: workerPassword,
+          tags: 'worker',
+        },
+        { auth: rabbitmqAuth }
+      );
+      
+      // Set permissions
+      await axios.put(
+        `${rabbitmqMgmtUrl}/api/permissions/%2F/${workerUsername}`,
+        {
+          configure: '.*',
+          write: '.*',
+          read: '.*',
+        },
+        { auth: rabbitmqAuth }
+      );
+      
+      console.log('Created RabbitMQ user for worker', { workerUsername });
+    } catch (error) {
+      console.error('Failed to create RabbitMQ user', error);
+      return c.json<ApiResponse>({ 
+        success: false,
+        error: 'Failed to create worker credentials' 
+      }, 500);
+    }
+    
     // Update registration with approval
     config.approved = true;
     config.approvedAt = Date.now();
@@ -774,8 +813,6 @@ platformRoutes.post('/workers/:workerId/approve', async (c) => {
     
     // Remove from pending
     await redis.zrem('workers:pending', workerId);
-    
-    // Note: RabbitMQ user creation would be handled by the main workers API
     
     return c.json<ApiResponse>({
       success: true,
