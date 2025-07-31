@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Bug, Mail, Lock, LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
@@ -9,6 +9,7 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuthStore()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +33,7 @@ export const Login: React.FC = () => {
       if (data.success && data.data) {
         login(data.data.nest, data.data.tokens.accessToken)
         toast.success('Welcome to your colony! 🐜')
+        navigate('/dashboard')
       } else {
         throw new Error('Invalid response from server')
       }

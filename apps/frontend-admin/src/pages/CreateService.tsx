@@ -183,13 +183,26 @@ export const CreateService: React.FC = () => {
     }
 
     try {
-      // TODO: Replace with actual API call
-      console.log('Creating watcher:', formData)
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/admin/services/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create watcher')
+      }
       
       toast.success('🐜 Watcher deployed successfully!')
       navigate('/services')
     } catch (error) {
-      toast.error('Failed to deploy watcher')
+      toast.error(error instanceof Error ? error.message : 'Failed to deploy watcher')
     }
   }
 
