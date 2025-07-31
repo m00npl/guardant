@@ -1002,6 +1002,8 @@ workersApi.get('/registrations/approved', async (c) => {
           lastHeartbeat: heartbeat?.lastSeen,
           version: heartbeat?.version,
           points: heartbeat?.totalPoints || 0,
+          region: heartbeat?.location?.region || registration.location?.region || 'Unknown',
+          city: heartbeat?.location?.city || registration.location?.city || 'Unknown',
         };
       })
       .filter(Boolean)

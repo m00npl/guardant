@@ -848,7 +848,7 @@ export const PlatformAdminPage: React.FC = () => {
                                     {worker.displayName || worker.workerId}
                                   </p>
                                   <p className="text-sm text-gray-500">
-                                    Owner: {worker.ownerEmail} • Region: {worker.region}
+                                    Owner: {worker.ownerEmail} • Location: {worker.city}, {worker.region}
                                   </p>
                                 </div>
                               </div>
