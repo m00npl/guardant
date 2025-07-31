@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../stores/authStore'
 import { 
   ArrowLeft, 
   Globe, 
@@ -23,6 +24,7 @@ type MonitoringStrategy = 'closest' | 'all-selected' | 'round-robin' | 'failover
 
 export const CreateService: React.FC = () => {
   const navigate = useNavigate()
+  const { token } = useAuthStore()
   const [formData, setFormData] = useState({
     name: '',
     type: 'web' as ServiceType,
@@ -183,7 +185,6 @@ export const CreateService: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch('/api/admin/services/create', {
         method: 'POST',
         headers: {
@@ -430,7 +431,7 @@ export const CreateService: React.FC = () => {
           </button>
           <button
             type="submit"
-            className="btn-primary"
+            className="btn-primary inline-flex items-center"
           >
             <Save className="h-5 w-5 mr-2" />
             Deploy Watcher
