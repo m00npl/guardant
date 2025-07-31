@@ -181,7 +181,63 @@ const hybridStorage = {
     },
     async getServicesByNest(nestId) {
         const servicesData = await redis.get(keys.services(nestId));
-        return servicesData ? JSON.parse(servicesData) : [];
+        const services = servicesData ? JSON.parse(servicesData) : [];
+        
+        // Fetch monitoring status from scheduler for each service
+        const schedulerServices = await redis.hgetall('scheduler:services');
+        
+        // Enhance services with lastCheck data
+        for (const service of services) {
+            // Try to get status from scheduler first
+            const schedulerData = schedulerServices[service.id];
+            if (schedulerData) {
+                try {
+                    const schedulerService = JSON.parse(schedulerData);
+                    service.lastCheck = {
+                        status: schedulerService.stats?.lastSuccess && 
+                                (Date.now() - schedulerService.stats.lastSuccess < 300000) ? 'up' : 
+                                schedulerService.stats?.lastFailure ? 'down' : 'pending',
+                        responseTime: schedulerService.stats?.averageResponseTime || 0,
+                        timestamp: schedulerService.stats?.lastSuccess || schedulerService.stats?.lastFailure || null
+                    };
+                    service.statistics = {
+                        uptime: schedulerService.stats?.uptime || 0,
+                        checksCompleted: schedulerService.stats?.checksCompleted || 0,
+                        checksFailed: schedulerService.stats?.checksFailed || 0
+                    };
+                } catch (e) {
+                    console.warn('Failed to parse scheduler data for service:', service.id, e);
+                }
+            }
+            
+            // Fallback to service status if no scheduler data
+            if (!service.lastCheck) {
+                const statusData = await redis.get(keys.serviceStatus(nestId, service.id));
+                if (statusData) {
+                    try {
+                        const status = JSON.parse(statusData);
+                        service.lastCheck = {
+                            status: status.status || 'pending',
+                            responseTime: status.responseTime || 0,
+                            timestamp: status.lastChecked || null
+                        };
+                    } catch (e) {
+                        console.warn('Failed to parse status data for service:', service.id, e);
+                    }
+                }
+            }
+            
+            // Default if no status data at all
+            if (!service.lastCheck) {
+                service.lastCheck = {
+                    status: 'pending',
+                    responseTime: 0,
+                    timestamp: null
+                };
+            }
+        }
+        
+        return services;
     },
     async createService(service) {
         const services = await this.getServicesByNest(service.nestId);
