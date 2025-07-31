@@ -65,24 +65,69 @@ export const Monitoring: React.FC = () => {
 
   const fetchMonitoringData = async () => {
     try {
-      const response = await apiFetch('/api/admin/monitoring/status', {
+      // First try the monitoring endpoint
+      const monitoringResponse = await apiFetch('/api/admin/monitoring/status', {
         method: 'GET'
       })
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          // API not implemented yet, use sample data
-          setSampleData()
-          return
-        }
-        throw new Error('Failed to fetch monitoring data')
+      if (monitoringResponse.ok) {
+        const data = await monitoringResponse.json()
+        setServices(data.services || [])
+        setAlerts(data.alerts || [])
+        return
       }
 
-      const data = await response.json()
-      setServices(data.services || [])
-      setAlerts(data.alerts || [])
+      // If monitoring endpoint not available, fetch services list
+      const servicesResponse = await apiFetch('/api/admin/services/list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!servicesResponse.ok) {
+        throw new Error('Failed to fetch services')
+      }
+
+      const servicesData = await servicesResponse.json()
+      const servicesList = servicesData.data || []
+
+      // Transform services data for monitoring display
+      const monitoringServices = servicesList.map((service: any) => ({
+        id: service.id,
+        name: service.name,
+        url: service.target,
+        status: service.lastCheck?.status || 'pending',
+        responseTime: service.lastCheck?.responseTime || 0,
+        lastChecked: service.lastCheck?.timestamp || Date.now(),
+        uptime: service.statistics?.uptime || 99.5,
+        regions: service.monitoring?.regions?.map((region: string) => ({
+          id: region,
+          name: region.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          status: service.lastCheck?.status || 'pending',
+          responseTime: service.lastCheck?.responseTime || 0
+        })) || [],
+        history: generateSampleHistory() // Still use sample history for now
+      }))
+
+      setServices(monitoringServices)
+      
+      // Generate alerts based on service status
+      const generatedAlerts = servicesList
+        .filter((service: any) => service.lastCheck?.status === 'down' || service.lastCheck?.status === 'degraded')
+        .map((service: any, index: number) => ({
+          id: `alert-${index}`,
+          serviceId: service.id,
+          serviceName: service.name,
+          type: service.lastCheck?.status === 'down' ? 'down' : 'slow',
+          message: service.lastCheck?.status === 'down' ? 'Service is not responding' : 'Response time above threshold',
+          timestamp: service.lastCheck?.timestamp || Date.now(),
+          acknowledged: false
+        }))
+
+      setAlerts(generatedAlerts)
     } catch (error) {
-      console.error('Monitoring API not available, using sample data')
+      console.error('Failed to fetch monitoring data:', error)
       setSampleData()
     } finally {
       setLoading(false)
