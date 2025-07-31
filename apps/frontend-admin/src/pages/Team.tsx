@@ -86,14 +86,24 @@ export const Team: React.FC = () => {
         }
       })
 
-      const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch team members')
+        if (response.status === 404) {
+          console.log('Team API endpoints not implemented yet')
+          setTeamMembers([])
+          return
+        }
+        throw new Error('Failed to fetch team members')
       }
 
+      const data = await response.json()
       setTeamMembers(data.data || [])
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load team members')
+      if (error instanceof SyntaxError) {
+        console.log('Team API endpoints not implemented yet')
+        setTeamMembers([])
+      } else {
+        toast.error(error instanceof Error ? error.message : 'Failed to load team members')
+      }
     } finally {
       setLoading(false)
     }
@@ -105,31 +115,9 @@ export const Team: React.FC = () => {
       return
     }
 
-    setInviting(true)
-    try {
-      const response = await fetch('/api/admin/team/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(inviteForm)
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send invitation')
-      }
-
-      toast.success('Invitation sent successfully!')
-      setShowInviteModal(false)
-      setInviteForm({ email: '', role: 'member' })
-      fetchTeamMembers()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send invitation')
-    } finally {
-      setInviting(false)
-    }
+    toast.info('Team invitations will be available soon!')
+    setShowInviteModal(false)
+    setInviteForm({ email: '', role: 'member' })
   }
 
   const handleRemoveMember = async (memberId: string, memberEmail: string) => {
@@ -217,6 +205,22 @@ export const Team: React.FC = () => {
           <UserPlus className="h-5 w-5 mr-2" />
           Invite Member
         </button>
+      </div>
+
+      {/* Coming Soon Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-blue-800">
+              Team management features are coming soon! You'll be able to invite team members, manage roles, and collaborate on monitoring your services.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Team Members List */}

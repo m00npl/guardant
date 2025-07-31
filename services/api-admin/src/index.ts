@@ -486,15 +486,17 @@ const rabbitmqService = {
       serviceStatus.lastChecked = timestamp;
       
       // Update regional status
-      const regionIndex = serviceStatus.regions.findIndex((r: any) => r.id === regionId);
-      if (regionIndex !== -1) {
-        serviceStatus.regions[regionIndex] = {
-          id: regionId,
-          status,
-          responseTime,
-          lastChecked: timestamp,
-          error: error || null,
-        };
+      if (serviceStatus.regions && Array.isArray(serviceStatus.regions)) {
+        const regionIndex = serviceStatus.regions.findIndex((r: any) => r.id === regionId);
+        if (regionIndex !== -1) {
+          serviceStatus.regions[regionIndex] = {
+            id: regionId,
+            status,
+            responseTime,
+            lastChecked: timestamp,
+            error: error || null,
+          };
+        }
       }
       
       await redis.set(statusKey, JSON.stringify(serviceStatus));
