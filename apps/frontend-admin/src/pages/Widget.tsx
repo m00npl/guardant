@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import toast from 'react-hot-toast';
 
 interface WidgetConfig {
   theme: 'light' | 'dark';
@@ -49,7 +50,7 @@ export const Widget: React.FC = () => {
   const loadWidgetConfig = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3012/api/widget/config', {
+      const response = await fetch('/api/admin/widget/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +80,7 @@ export const Widget: React.FC = () => {
     if (!widgetData) return;
 
     try {
-      const response = await fetch('http://localhost:3012/api/widget/preview', {
+      const response = await fetch('/api/admin/widget/preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export const Widget: React.FC = () => {
     
     // Update widget data with new config
     if (widgetData) {
-      const baseUrl = 'http://localhost:3002'; // Should come from env
+      const baseUrl = window.location.origin; // Use current origin
       const queryParams = new URLSearchParams({
         theme: newConfig.theme,
         services: newConfig.services.length > 0 ? newConfig.services.join(',') : 'all',
@@ -129,10 +130,10 @@ export const Widget: React.FC = () => {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      // You could add a toast notification here
-      alert('Copied to clipboard!');
+      toast.success('Copied to clipboard!');
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
+      toast.error('Failed to copy to clipboard');
     }
   };
 
