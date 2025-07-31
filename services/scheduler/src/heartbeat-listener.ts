@@ -4,9 +4,27 @@ import { createLogger } from '../../../shared/logger';
 
 const logger = createLogger('heartbeat-listener');
 
-// Redis connection
+// Redis connection with explicit configuration
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-const redis = new Redis(redisUrl);
+const parsedUrl = new URL(redisUrl);
+
+const redis = new Redis({
+  host: parsedUrl.hostname,
+  port: parseInt(parsedUrl.port) || 6379,
+  password: parsedUrl.password || undefined,
+  // Explicitly set as master to avoid any auto-detection issues
+  role: 'master',
+  // Disable read-only mode
+  readOnly: false,
+  // Enable auto-reconnect
+  retryStrategy: (times) => {
+    if (times > 10) {
+      logger.error('Redis connection failed after 10 retries');
+      return null;
+    }
+    return Math.min(times * 100, 3000);
+  }
+});
 
 export async function startHeartbeatListener(channel: amqp.Channel) {
   try {
