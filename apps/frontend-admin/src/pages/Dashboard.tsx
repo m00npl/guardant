@@ -76,16 +76,18 @@ export const Dashboard: React.FC = () => {
         throw new Error(data.error || 'Failed to fetch dashboard stats')
       }
 
-      setStats(data.data || {
-        totalWatchers: 0,
-        activeWatchers: 0,
-        incidents: 0,
-        avgResponseTime: 0,
-        uptime: 100,
-        activeColonies: 0,
-        busyWorkerAnts: 0,
-        coloniesStatus: [],
-        recentActivity: []
+      // Ensure all arrays are initialized properly
+      const statsData = data.data || {}
+      setStats({
+        totalWatchers: statsData.totalWatchers || 0,
+        activeWatchers: statsData.activeWatchers || 0,
+        incidents: statsData.incidents || 0,
+        avgResponseTime: statsData.avgResponseTime || 0,
+        uptime: statsData.uptime !== undefined ? statsData.uptime : 100,
+        activeColonies: statsData.activeColonies || 0,
+        busyWorkerAnts: statsData.busyWorkerAnts || 0,
+        coloniesStatus: Array.isArray(statsData.coloniesStatus) ? statsData.coloniesStatus : [],
+        recentActivity: Array.isArray(statsData.recentActivity) ? statsData.recentActivity : []
       })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load dashboard')
@@ -225,7 +227,7 @@ export const Dashboard: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            {stats.coloniesStatus.length > 0 ? (
+            {stats.coloniesStatus && stats.coloniesStatus.length > 0 ? (
               stats.coloniesStatus.map((colony) => (
                 <div key={colony.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center">
@@ -261,7 +263,7 @@ export const Dashboard: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            {stats.recentActivity.length > 0 ? (
+            {stats.recentActivity && stats.recentActivity.length > 0 ? (
               <div className="space-y-3 max-h-[300px] overflow-y-auto">
                 {stats.recentActivity.map((activity) => (
                   <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
