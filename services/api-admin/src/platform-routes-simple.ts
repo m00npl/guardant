@@ -173,6 +173,21 @@ platformRoutes.post('/nests/list', async (c) => {
         if (nestData) {
           const nest = JSON.parse(nestData);
           
+          // Skip system/admin nests - check if the owner is a platform admin
+          if (nest.ownerEmail) {
+            // Check if this email belongs to a platform admin
+            const userIdKey = await redis.get(`auth:user:email:${nest.ownerEmail}`);
+            if (userIdKey) {
+              const userData = await redis.get(`auth:user:${userIdKey}`);
+              if (userData) {
+                const user = JSON.parse(userData);
+                if (user.role === 'platform_admin') {
+                  continue; // Skip platform admin's nest
+                }
+              }
+            }
+          }
+          
           // Get service count for this nest using SCAN
           const serviceKeys = [];
           let serviceCursor = '0';
