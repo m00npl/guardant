@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { 
   Crown, 
   Globe, 
@@ -364,13 +365,13 @@ export const Settings: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 API Keys
               </label>
-              <button
+              <Link
+                to="/api-keys"
                 className="btn-secondary w-full inline-flex items-center justify-center"
-                disabled
               >
                 <Key className="h-4 w-4 mr-2" />
-                Manage API Keys (Coming Soon)
-              </button>
+                Manage API Keys
+              </Link>
             </div>
           </div>
         </div>
