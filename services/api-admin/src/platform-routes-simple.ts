@@ -336,6 +336,17 @@ platformRoutes.put('/nests/:nestId', async (c) => {
     const oldEmail = nest.ownerEmail;
     
     // Update nest data
+    // Handle subscription tier update specially
+    if (body.tier) {
+      nest.subscription = {
+        ...nest.subscription,
+        tier: body.tier,
+        servicesLimit: body.tier === 'free' ? 3 : body.tier === 'pro' ? 10 : 999999,
+        teamMembersLimit: body.tier === 'free' ? 1 : body.tier === 'pro' ? 5 : 999999,
+      };
+      delete body.tier; // Remove tier from body so it doesn't overwrite subscription
+    }
+    
     Object.assign(nest, {
       ...body,
       updatedAt: Date.now()
