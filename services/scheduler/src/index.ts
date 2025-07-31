@@ -454,6 +454,19 @@ async function updateServiceStats(service: ScheduledService, result: any) {
   await redis.hset('scheduler:services', service.id, JSON.stringify(service));
   await updateGlobalStats();
   
+  // Store check result in history
+  const checkResult = {
+    timestamp: Date.now(),
+    status: result.status,
+    responseTime: result.responseTime || 0,
+    region: result.region || 'unknown',
+    error: result.error
+  };
+  
+  // Store in a list with max 1000 entries
+  await redis.lpush(`service:${service.id}:checks`, JSON.stringify(checkResult));
+  await redis.ltrim(`service:${service.id}:checks`, 0, 999);
+  
   logger.debug('📊 Updated stats for service', { 
     serviceId: service.id,
     status: result.status,

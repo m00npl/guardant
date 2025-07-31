@@ -1580,6 +1580,129 @@ app.post('/api/admin/services/delete', async (c) => {
   }
 });
 
+// Service detail endpoint
+app.get('/api/admin/services/:id/detail', async (c) => {
+  try {
+    const nestId = extractNestId(c);
+    const serviceId = c.req.param('id');
+    
+    // Get service configuration
+    const services = await hybridStorage.getServicesByNest(nestId);
+    const service = services.find(s => s.id === serviceId);
+    
+    if (!service) {
+      return c.json<ApiResponse>({ success: false, error: 'Service not found' }, 404);
+    }
+    
+    // Get monitoring data from scheduler
+    const schedulerData = await redis.hget('scheduler:services', serviceId);
+    let schedulerService = null;
+    if (schedulerData) {
+      try {
+        schedulerService = JSON.parse(schedulerData);
+      } catch (e) {
+        console.warn('Failed to parse scheduler data for service:', serviceId);
+      }
+    }
+    
+    // Get recent check results
+    const recentChecks = await redis.lrange(`service:${serviceId}:checks`, 0, 100);
+    const history = recentChecks.map(check => {
+      try {
+        return JSON.parse(check);
+      } catch (e) {
+        return null;
+      }
+    }).filter(Boolean);
+    
+    // Calculate statistics
+    const stats = schedulerService?.stats || {
+      checksScheduled: 0,
+      checksCompleted: 0,
+      checksFailed: 0,
+      lastSuccess: null,
+      lastFailure: null,
+      averageResponseTime: 0,
+      uptime: 0
+    };
+    
+    // Calculate uptime percentage
+    const uptime = stats.checksCompleted > 0 
+      ? ((stats.checksCompleted - stats.checksFailed) / stats.checksCompleted) * 100 
+      : 0;
+    
+    // Get incidents (failures)
+    const incidents = [];
+    let incidentStart = null;
+    history.forEach((check, index) => {
+      if (check.status === 'down' && !incidentStart) {
+        incidentStart = {
+          id: `incident-${check.timestamp}`,
+          startTime: check.timestamp,
+          reason: check.error || 'Service unavailable',
+          affectedRegions: [check.region || 'unknown']
+        };
+      } else if (check.status === 'up' && incidentStart) {
+        incidents.push({
+          ...incidentStart,
+          endTime: check.timestamp,
+          status: 'resolved'
+        });
+        incidentStart = null;
+      }
+    });
+    
+    // Add ongoing incident if any
+    if (incidentStart) {
+      incidents.push({
+        ...incidentStart,
+        status: 'ongoing'
+      });
+    }
+    
+    // Prepare response
+    const detailData = {
+      id: service.id,
+      name: service.name,
+      type: service.type,
+      target: service.target,
+      interval: service.interval,
+      isActive: service.isActive,
+      monitoring: service.monitoring || {
+        regions: ['eu-west-1'],
+        strategy: 'all-selected'
+      },
+      statistics: {
+        uptime: Number(uptime.toFixed(2)),
+        avgResponseTime: Math.round(stats.averageResponseTime || 0),
+        totalChecks: stats.checksCompleted || 0,
+        failedChecks: stats.checksFailed || 0,
+        lastDowntime: stats.lastFailure || null
+      },
+      lastCheck: service.lastCheck || (stats.lastSuccess || stats.lastFailure ? {
+        status: stats.lastSuccess && (!stats.lastFailure || stats.lastSuccess > stats.lastFailure) ? 'up' : 'down',
+        responseTime: stats.averageResponseTime || 0,
+        timestamp: stats.lastSuccess || stats.lastFailure
+      } : null),
+      history: history.slice(0, 48).map(check => ({
+        timestamp: check.timestamp,
+        status: check.status,
+        responseTime: check.responseTime || 0,
+        region: check.region || 'unknown'
+      })),
+      incidents: incidents.slice(0, 10) // Last 10 incidents
+    };
+    
+    return c.json<ApiResponse>({
+      success: true,
+      data: detailData
+    });
+  } catch (error: any) {
+    console.error('Error fetching service detail:', error);
+    return c.json<ApiResponse>({ success: false, error: error.message }, 500);
+  }
+});
+
 // Regions endpoint moved to public section above
 
 // Subscription management (protected routes)
