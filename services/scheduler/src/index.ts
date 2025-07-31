@@ -97,7 +97,7 @@ async function sendCheckCommand(service: ScheduledService) {
   
   // Check if we recently checked this URL
   if (lastCheck && (Date.now() - lastCheck) < CHECK_CACHE_TTL) {
-    logger.debug('⏭️  Skipping check (cached)', { 
+    logger.info('⏭️  Skipping check (cached)', { 
       serviceId: service.id,
       target: service.target,
       cacheAge: Date.now() - lastCheck 
@@ -140,7 +140,7 @@ async function sendCheckCommand(service: ScheduledService) {
         { persistent: true }
       );
       
-      logger.debug('📤 Sent region-specific check', { 
+      logger.info('📤 Sent region-specific check', { 
         serviceId: service.id,
         region,
         target: service.target 
@@ -155,7 +155,7 @@ async function sendCheckCommand(service: ScheduledService) {
       { persistent: true }
     );
     
-    logger.debug('📤 Sent global check command', { 
+    logger.info('📤 Sent global check command', { 
       serviceId: service.id,
       target: service.target 
     });
