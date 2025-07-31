@@ -24,10 +24,34 @@ platformRoutes.post('/stats', async (c) => {
   try {
     const redis = c.get('redis');
     
-    // Get all nests from Redis
-    const nestKeys = await redis.keys('nest:*');
-    const userKeys = await redis.keys('auth:user:*');
-    const serviceKeys = await redis.keys('service:*');
+    // Use SCAN instead of KEYS for better performance and compatibility
+    const nestKeys = [];
+    const userKeys = [];
+    const serviceKeys = [];
+    
+    // Scan for nest keys
+    let cursor = '0';
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'nest:*', 'COUNT', 100);
+      cursor = newCursor;
+      nestKeys.push(...keys);
+    } while (cursor !== '0');
+    
+    // Scan for user keys
+    cursor = '0';
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'auth:user:*', 'COUNT', 100);
+      cursor = newCursor;
+      userKeys.push(...keys);
+    } while (cursor !== '0');
+    
+    // Scan for service keys
+    cursor = '0';
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'service:*', 'COUNT', 100);
+      cursor = newCursor;
+      serviceKeys.push(...keys);
+    } while (cursor !== '0');
     
     // Filter out email mappings
     const actualNestKeys = nestKeys.filter((k: string) => !k.includes(':email:'));
@@ -130,7 +154,15 @@ platformRoutes.post('/nests/list', async (c) => {
     const body = await c.req.json();
     const { page = 1, limit = 20 } = body;
     
-    const nestKeys = await redis.keys('nest:*');
+    // Use SCAN instead of KEYS
+    const nestKeys = [];
+    let cursor = '0';
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'nest:*', 'COUNT', 100);
+      cursor = newCursor;
+      nestKeys.push(...keys);
+    } while (cursor !== '0');
+    
     const actualNestKeys = nestKeys.filter((k: string) => !k.includes(':email:'));
     
     const nests = [];
@@ -140,8 +172,14 @@ platformRoutes.post('/nests/list', async (c) => {
         if (nestData) {
           const nest = JSON.parse(nestData);
           
-          // Get service count for this nest
-          const serviceKeys = await redis.keys(`service:${nest.id}:*`);
+          // Get service count for this nest using SCAN
+          const serviceKeys = [];
+          let serviceCursor = '0';
+          do {
+            const [newCursor, keys] = await redis.scan(serviceCursor, 'MATCH', `service:${nest.id}:*`, 'COUNT', 100);
+            serviceCursor = newCursor;
+            serviceKeys.push(...keys);
+          } while (serviceCursor !== '0');
           
           nests.push({
             ...nest,
@@ -183,7 +221,15 @@ platformRoutes.post('/users/list', async (c) => {
     const body = await c.req.json();
     const { page = 1, limit = 20 } = body;
     
-    const userKeys = await redis.keys('auth:user:*');
+    // Use SCAN instead of KEYS
+    const userKeys = [];
+    let cursor = '0';
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'auth:user:*', 'COUNT', 100);
+      cursor = newCursor;
+      userKeys.push(...keys);
+    } while (cursor !== '0');
+    
     const actualUserKeys = userKeys.filter((k: string) => 
       !k.includes(':email:') && k.match(/^auth:user:[a-f0-9-]+$/)
     );
