@@ -2507,6 +2507,13 @@ async function startServer() {
     // Register all API endpoints after middleware is set up
     registerApiEndpoints(app);
     
+    // Add middleware to provide redis to platform routes
+    platformRoutes.use('*', async (c, next) => {
+      c.set('redis', redis);
+      c.set('storage', hybridStorage);
+      await next();
+    });
+    
     // Mount platform admin routes
     app.route('/api/admin/platform', platformRoutes);
     

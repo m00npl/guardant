@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { getAuthUser } from '/app/packages/auth-system/src/index';
 import type { ApiResponse } from './index';
-import { redis } from './storage/redis';
 
 export const platformRoutes = new Hono();
 
@@ -23,7 +22,7 @@ platformRoutes.use('/*', requirePlatformAdmin);
 // Get platform statistics - simplified version
 platformRoutes.post('/stats', async (c) => {
   try {
-    // Use imported redis instance
+    const redis = c.get('redis');
     
     // Get all nests from Redis
     const nestKeys = await redis.keys('nest:*');
@@ -127,7 +126,7 @@ platformRoutes.post('/stats', async (c) => {
 // Get all nests - simplified version
 platformRoutes.post('/nests/list', async (c) => {
   try {
-    // Use imported redis instance
+    const redis = c.get('redis');
     const body = await c.req.json();
     const { page = 1, limit = 20 } = body;
     
@@ -180,7 +179,7 @@ platformRoutes.post('/nests/list', async (c) => {
 // Get all users - simplified version
 platformRoutes.post('/users/list', async (c) => {
   try {
-    // Use imported redis instance
+    const redis = c.get('redis');
     const body = await c.req.json();
     const { page = 1, limit = 20 } = body;
     
