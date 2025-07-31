@@ -47,29 +47,37 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }
 
-  // Base navigation items available to all users
-  const navigation = [
-    { name: 'Ant Hill', href: '/dashboard', icon: BarChart3 }, // Dashboard -> Ant Hill
-    { name: 'Watchers', href: '/services', icon: Globe }, // Services -> Watchers (ants watching services)
-    { name: 'Colonies', href: '/regions', icon: MapPin }, // Regions -> Colonies (ant colonies in different regions)
-    { name: 'Team', href: '/team', icon: UserPlus }, // Team management
-    { name: 'Widget', href: '/widget', icon: Code }, // Embeddable Widget
-    { name: 'Queen\'s Den', href: '/settings', icon: Settings }, // Settings -> Queen's Den
-  ]
+  // Different navigation for platform admins vs regular users
+  let navigation = []
   
-  // Add Worker Ants menu for admins and platform admins
-  if (user?.role === 'admin' || user?.role === 'platform_admin' || user?.role === 'owner') {
-    navigation.splice(3, 0, { name: 'Worker Ants', href: '/workers', icon: Users })
-  }
-  
-  // Add Monitoring page for platform admins and owners
-  if (isPlatformAdmin() || user?.role === 'owner') {
-    navigation.push({ name: 'Monitoring', href: '/monitoring', icon: Activity })
-  }
-  
-  // Add Platform Admin page for platform admins only
   if (user?.role === 'platform_admin') {
-    navigation.push({ name: 'Platform Admin', href: '/platform', icon: Shield })
+    // Platform admins only see platform management options
+    navigation = [
+      { name: 'Ant Hill', href: '/dashboard', icon: BarChart3 }, // Overview
+      { name: 'Platform Admin', href: '/platform', icon: Shield },
+      { name: 'Worker Colony', href: '/workers', icon: Users },
+      { name: 'Monitoring', href: '/monitoring', icon: Activity },
+    ]
+  } else {
+    // Regular users see normal menu
+    navigation = [
+      { name: 'Ant Hill', href: '/dashboard', icon: BarChart3 }, // Dashboard -> Ant Hill
+      { name: 'Watchers', href: '/services', icon: Globe }, // Services -> Watchers (ants watching services)
+      { name: 'Colonies', href: '/regions', icon: MapPin }, // Regions -> Colonies (ant colonies in different regions)
+      { name: 'Team', href: '/team', icon: UserPlus }, // Team management
+      { name: 'Widget', href: '/widget', icon: Code }, // Embeddable Widget
+      { name: 'Queen\'s Den', href: '/settings', icon: Settings }, // Settings -> Queen's Den
+    ]
+    
+    // Add Worker Ants menu for admins and owners
+    if (user?.role === 'admin' || user?.role === 'owner') {
+      navigation.splice(3, 0, { name: 'Worker Ants', href: '/workers', icon: Users })
+    }
+    
+    // Add Monitoring page for owners
+    if (user?.role === 'owner') {
+      navigation.push({ name: 'Monitoring', href: '/monitoring', icon: Activity })
+    }
   }
 
   const isActive = (path: string) => {

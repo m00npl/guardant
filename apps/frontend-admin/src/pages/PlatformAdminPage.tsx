@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import axios from 'axios';
 import { 
   Users, 
@@ -16,7 +16,7 @@ import {
   Play,
   Trash2
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/admin';
 
@@ -42,7 +42,7 @@ interface PlatformStats {
 }
 
 export const PlatformAdminPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [nests, setNests] = useState<any[]>([]);
