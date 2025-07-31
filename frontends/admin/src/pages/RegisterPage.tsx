@@ -119,8 +119,12 @@ export const RegisterPage: React.FC = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Minimum 8 characters, uppercase letter required"
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Password must be at least 8 characters and contain at least one uppercase letter
+              </p>
             </div>
 
             <div>
