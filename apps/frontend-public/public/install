@@ -238,6 +238,13 @@ fi
 git clone "$REPO_URL" "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
+# Fix ownership if running with sudo
+if [ "$SUDO_USER" ]; then
+    echo -e "${YELLOW}Fixing directory ownership...${NC}"
+    chown -R "$SUDO_USER:$SUDO_USER" "$INSTALL_DIR"
+    echo -e "${GREEN}✓ Ownership set to $SUDO_USER${NC}"
+fi
+
 # Create .env file
 echo ""
 echo -e "${YELLOW}Creating configuration...${NC}"
@@ -257,17 +264,33 @@ echo -e "${GREEN}✓ Configuration created${NC}"
 echo ""
 echo -e "${YELLOW}Building and starting worker...${NC}"
 
-docker compose build
-docker compose up -d
+# Run docker commands as the correct user if using sudo
+if [ "$SUDO_USER" ]; then
+    sudo -u "$SUDO_USER" docker compose build
+    sudo -u "$SUDO_USER" docker compose up -d
+else
+    docker compose build
+    docker compose up -d
+fi
 
 # Check if started
 sleep 3
-if docker compose ps | grep -q "guardant-worker.*running"; then
-    echo -e "${GREEN}✓ Worker started successfully!${NC}"
+if [ "$SUDO_USER" ]; then
+    if sudo -u "$SUDO_USER" docker compose ps | grep -q "guardant-worker.*running"; then
+        echo -e "${GREEN}✓ Worker started successfully!${NC}"
+    else
+        echo -e "${RED}Failed to start worker${NC}"
+        echo "Check logs with: cd $INSTALL_DIR && docker compose logs"
+        exit 1
+    fi
 else
-    echo -e "${RED}Failed to start worker${NC}"
-    echo "Check logs with: cd $INSTALL_DIR && docker compose logs"
-    exit 1
+    if docker compose ps | grep -q "guardant-worker.*running"; then
+        echo -e "${GREEN}✓ Worker started successfully!${NC}"
+    else
+        echo -e "${RED}Failed to start worker${NC}"
+        echo "Check logs with: cd $INSTALL_DIR && docker compose logs"
+        exit 1
+    fi
 fi
 
 # Show next steps
