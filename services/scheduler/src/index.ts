@@ -259,12 +259,31 @@ async function loadServices() {
     
     // Also load from services:* keys if scheduler:services is empty
     if (scheduledServices.size === 0) {
-      const serviceKeys = await redis.keys('services:*');
+      logger.info('📋 No services in scheduler hash, loading from services:* keys...');
+      
+      // Use SCAN instead of KEYS (which is disabled)
+      const stream = redis.scanStream({
+        match: 'services:*',
+        count: 100
+      });
+      
+      const serviceKeys: string[] = [];
+      stream.on('data', (keys: string[]) => {
+        serviceKeys.push(...keys);
+      });
+      
+      await new Promise((resolve, reject) => {
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+      
+      logger.info(`📋 Found ${serviceKeys.length} service keys`);
       
       for (const key of serviceKeys) {
         const servicesData = await redis.get(key);
         if (servicesData) {
           const services = JSON.parse(servicesData);
+          logger.info(`📋 Loading ${services.length} services from ${key}`);
           for (const service of services) {
             if (service.isActive) {
               await addService(service);
