@@ -601,6 +601,7 @@ export const PlatformAdminPage: React.FC = () => {
                     </li>
                   )}
                 </ul>
+                </div>
               </div>
             )}
 
