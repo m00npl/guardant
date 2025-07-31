@@ -1976,22 +1976,91 @@ app.post('/api/admin/dashboard/stats', async (c) => {
     // Get worker count from Redis
     const workers = await redis.hgetall('workers:heartbeat');
     let busyWorkerAnts = 0;
+    const coloniesStatus: any[] = [];
+    const workersByRegion: { [region: string]: number } = {};
     
-    Object.values(workers).forEach(data => {
+    Object.entries(workers).forEach(([workerId, data]) => {
       try {
         const worker = JSON.parse(data);
         const isAlive = (Date.now() - worker.lastSeen) < 60000; // 1 minute timeout
         if (isAlive) {
           busyWorkerAnts++;
+          // Group workers by region
+          const region = worker.region || 'unknown';
+          workersByRegion[region] = (workersByRegion[region] || 0) + 1;
         }
       } catch (error) {
         console.error('Error parsing worker data:', error);
       }
     });
     
+    // Convert worker regions to colonies status
+    const regionMap: { [key: string]: { name: string, area: string } } = {
+      'us-east-1': { name: 'US East', area: 'North America' },
+      'us-west-1': { name: 'US West', area: 'North America' },
+      'eu-west-1': { name: 'EU West', area: 'Europe' },
+      'eu-central-1': { name: 'EU Central', area: 'Europe' },
+      'ap-southeast-1': { name: 'Asia Pacific', area: 'Singapore' },
+      'ap-northeast-1': { name: 'Asia Pacific', area: 'Tokyo' }
+    };
+    
+    Object.entries(workersByRegion).forEach(([region, count]) => {
+      const regionInfo = regionMap[region] || { name: region, area: 'Unknown' };
+      coloniesStatus.push({
+        id: region,
+        name: regionInfo.name,
+        region: regionInfo.area,
+        activeWorkers: count,
+        status: count > 0 ? 'active' : 'inactive'
+      });
+    });
+    
     // Calculate final metrics
     const avgResponseTime = totalChecks > 0 ? Math.round(totalResponseTime / totalChecks) : 0;
     const uptime = activeWatchers > 0 ? Math.round((totalUptime / activeWatchers) * 100) : 100;
+    
+    // Get recent activity
+    const recentActivity: any[] = [];
+    
+    // Get recent service checks
+    const recentChecks = await redis.zrange('recent:checks', -10, -1, 'WITHSCORES');
+    for (let i = 0; i < recentChecks.length; i += 2) {
+      try {
+        const checkData = JSON.parse(recentChecks[i]);
+        const timestamp = parseInt(recentChecks[i + 1]);
+        recentActivity.push({
+          id: `check-${timestamp}`,
+          type: 'watcher_check',
+          message: `${checkData.serviceName} checked successfully`,
+          timestamp,
+          status: checkData.status === 'up' ? 'success' : 'error'
+        });
+      } catch (error) {
+        // Skip invalid entries
+      }
+    }
+    
+    // Add worker join events
+    Object.entries(workers).forEach(([workerId, data]) => {
+      try {
+        const worker = JSON.parse(data);
+        // If worker joined in last hour
+        if (worker.firstSeen && (Date.now() - worker.firstSeen) < 3600000) {
+          recentActivity.push({
+            id: `worker-${workerId}`,
+            type: 'worker_joined',
+            message: `New worker ant joined ${regionMap[worker.region]?.name || worker.region} colony`,
+            timestamp: worker.firstSeen,
+            status: 'success'
+          });
+        }
+      } catch (error) {
+        // Skip invalid entries
+      }
+    });
+    
+    // Sort activity by timestamp
+    recentActivity.sort((a, b) => b.timestamp - a.timestamp);
     
     const stats = {
       totalWatchers,
@@ -2001,8 +2070,10 @@ app.post('/api/admin/dashboard/stats', async (c) => {
       incidents,
       avgResponseTime,
       uptime,
-      activeColonies,
+      activeColonies: coloniesStatus.length,
       busyWorkerAnts,
+      coloniesStatus,
+      recentActivity: recentActivity.slice(0, 10) // Limit to 10 most recent
     };
 
     return c.json<ApiResponse>({
