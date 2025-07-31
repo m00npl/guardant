@@ -234,9 +234,12 @@ export const Services: React.FC = () => {
                         <IconComponent className="h-5 w-5 text-gray-600" />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">
+                        <Link 
+                          to={`/services/${watcher.id}`}
+                          className="font-semibold text-gray-900 hover:text-primary-600 transition-colors"
+                        >
                           {watcher.name}
-                        </h4>
+                        </Link>
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <span>{getServiceTypeLabel(watcher.type)}</span>
                           <span>•</span>

@@ -20,7 +20,31 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation()
-  const { nest, logout } = useAuthStore()
+  const { nest, user, logout, isPlatformAdmin } = useAuthStore()
+  const [watcherCount, setWatcherCount] = React.useState(0)
+  
+  // Fetch actual watcher count
+  React.useEffect(() => {
+    fetchWatcherCount()
+  }, [])
+  
+  const fetchWatcherCount = async () => {
+    try {
+      const response = await fetch('/api/admin/services/count', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${useAuthStore.getState().token}`
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setWatcherCount(data.data?.count || 0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch watcher count:', error)
+    }
+  }
 
   // Base navigation items available to all users
   const navigation = [
@@ -32,12 +56,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Queen\'s Den', href: '/settings', icon: Settings }, // Settings -> Queen's Den
   ]
   
-  // TODO: Add role check when user role is available in authStore
-  // For now, Worker Ants is hidden for all users except platform admins
-  // Uncomment when role is available:
-  // if (user?.role === 'admin' || user?.role === 'platform_admin') {
-  //   navigation.splice(3, 0, { name: 'Worker Ants', href: '/workers', icon: Users })
-  // }
+  // Add Worker Ants menu for admins and platform admins
+  if (user?.role === 'admin' || user?.role === 'platform_admin' || user?.role === 'owner') {
+    navigation.splice(3, 0, { name: 'Worker Ants', href: '/workers', icon: Users })
+  }
+  
+  // Add Monitoring page for platform admins and owners
+  if (isPlatformAdmin() || user?.role === 'owner') {
+    navigation.push({ name: 'Monitoring', href: '/monitoring', icon: Activity })
+  }
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(path + '/')
@@ -97,10 +124,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">{nest?.name} Colony</p>
-                  <p className="text-xs text-gray-500">
-                    {nest?.subdomain}.guardant.me
-                  </p>
+                  <p className="text-sm font-medium text-gray-700">{nest?.name || 'My'} Colony</p>
+                  <div className="flex items-center space-x-2">
+                    <p className="text-xs text-gray-500">
+                      {nest?.subdomain}.guardant.me
+                    </p>
+                    {user && (
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                        user.role === 'platform_admin' ? 'bg-purple-100 text-purple-800' :
+                        user.role === 'owner' ? 'bg-yellow-100 text-yellow-800' :
+                        user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                        user.role === 'editor' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.role === 'platform_admin' ? 'Platform' : user.role}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
@@ -127,12 +167,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               {nest?.subscription.tier !== 'unlimited' && (
                 <div className="mt-1">
                   <div className="text-xs text-gray-500">
-                    Watchers: 0/{nest?.subscription.servicesLimit}
+                    Watchers: {watcherCount}/{nest?.subscription.servicesLimit || 3}
                   </div>
                   <div className="mt-1 w-full bg-gray-200 rounded-full h-1.5">
                     <div 
-                      className="bg-primary-600 h-1.5 rounded-full" 
-                      style={{ width: '0%' }}
+                      className="bg-primary-600 h-1.5 rounded-full transition-all duration-300" 
+                      style={{ width: `${Math.min((watcherCount / (nest?.subscription.servicesLimit || 3)) * 100, 100)}%` }}
                     ></div>
                   </div>
                 </div>

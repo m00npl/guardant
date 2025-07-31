@@ -25,7 +25,32 @@ type MonitoringStrategy = 'closest' | 'all-selected' | 'round-robin' | 'failover
 
 export const CreateService: React.FC = () => {
   const navigate = useNavigate()
-  const { token } = useAuthStore()
+  const { token, nest } = useAuthStore()
+  const [loading, setLoading] = useState(false)
+  const [currentWatcherCount, setCurrentWatcherCount] = useState(0)
+  
+  // Fetch current watcher count on mount
+  React.useEffect(() => {
+    fetchWatcherCount()
+  }, [])
+  
+  const fetchWatcherCount = async () => {
+    try {
+      const response = await apiFetch('/api/admin/services/count', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentWatcherCount(data.data?.count || 0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch watcher count:', error)
+    }
+  }
+  
   const [formData, setFormData] = useState({
     name: '',
     type: 'web' as ServiceType,
@@ -184,8 +209,16 @@ export const CreateService: React.FC = () => {
       toast.error('Select at least one colony for monitoring')
       return
     }
+    
+    // Check subscription limit
+    const limit = nest?.subscription.servicesLimit || 3
+    if (currentWatcherCount >= limit) {
+      toast.error(`You've reached your limit of ${limit} watchers. Upgrade your plan to add more.`)
+      return
+    }
 
     try {
+      setLoading(true)
       const response = await apiFetch('/api/admin/services/create', {
         method: 'POST',
         headers: {
@@ -204,26 +237,40 @@ export const CreateService: React.FC = () => {
       navigate('/services')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to deploy watcher')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => navigate('/services')}
-          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            🚀 Deploy New Watcher
-          </h1>
-          <p className="text-gray-600">
-            Configure a new watcher to monitor services across your ant colonies
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => navigate('/services')}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              🚀 Deploy New Watcher
+            </h1>
+            <p className="text-gray-600">
+              Configure a new watcher to monitor services across your ant colonies
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-gray-600">
+            Watchers: {currentWatcherCount}/{nest?.subscription.servicesLimit || 3}
           </p>
+          {currentWatcherCount >= (nest?.subscription.servicesLimit || 3) && (
+            <p className="text-sm text-warning-600 mt-1">
+              Limit reached - upgrade to add more
+            </p>
+          )}
         </div>
       </div>
 

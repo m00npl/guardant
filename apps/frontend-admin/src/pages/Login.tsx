@@ -31,8 +31,8 @@ export const Login: React.FC = () => {
       }
 
       if (data.success && data.data) {
-        login(data.data.nest, data.data.tokens.accessToken)
-        toast.success('Welcome to your colony! 🐜')
+        login(data.data.nest, data.data.user, data.data.tokens.accessToken)
+        toast.success(`Welcome back, ${data.data.user.name}! 🐜`)
         navigate('/dashboard')
       } else {
         throw new Error('Invalid response from server')

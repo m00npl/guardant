@@ -12,30 +12,69 @@ interface Nest {
   }
 }
 
+interface User {
+  id: string
+  email: string
+  name: string
+  role: 'platform_admin' | 'owner' | 'admin' | 'editor' | 'viewer'
+  nestId: string
+  permissions?: {
+    canManageNest: boolean
+    canViewNest: boolean
+    canManageServices: boolean
+    canViewServices: boolean
+    canManageUsers: boolean
+    canViewUsers: boolean
+    canManageApiKeys: boolean
+    canViewApiKeys: boolean
+    canManageBilling: boolean
+    canViewBilling: boolean
+    canManageWorkers: boolean
+    canViewWorkers: boolean
+    canAccessPlatformAdmin: boolean
+  }
+}
+
 interface AuthState {
   isAuthenticated: boolean
   nest: Nest | null
+  user: User | null
   token: string | null
-  login: (nest: Nest, token: string) => void
+  login: (nest: Nest, user: User, token: string) => void
   logout: () => void
+  hasPermission: (permission: keyof NonNullable<User['permissions']>) => boolean
+  isPlatformAdmin: () => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       isAuthenticated: false,
       nest: null,
+      user: null,
       token: null,
-      login: (nest, token) => set({ 
+      login: (nest, user, token) => set({ 
         isAuthenticated: true, 
-        nest, 
+        nest,
+        user,
         token 
       }),
       logout: () => set({ 
         isAuthenticated: false, 
-        nest: null, 
+        nest: null,
+        user: null,
         token: null 
       }),
+      hasPermission: (permission) => {
+        const { user } = get()
+        if (!user) return false
+        if (user.role === 'platform_admin') return true
+        return user.permissions?.[permission] ?? false
+      },
+      isPlatformAdmin: () => {
+        const { user } = get()
+        return user?.role === 'platform_admin'
+      }
     }),
     {
       name: 'guardant-auth',

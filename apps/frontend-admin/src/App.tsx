@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Services } from './pages/Services'
 import { CreateService } from './pages/CreateService'
 import { EditService } from './pages/EditService'
+import { ServiceDetail } from './pages/ServiceDetail'
 import { Regions } from './pages/Regions'
 import { Settings } from './pages/Settings'
 import { Widget } from './pages/Widget'
@@ -15,6 +16,7 @@ import { Subscription } from './pages/Subscription'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { useAuthStore } from './stores/authStore'
+import { Monitoring } from './pages/Monitoring'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -47,6 +49,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/services" element={<Services />} />
           <Route path="/services/create" element={<CreateService />} />
+          <Route path="/services/:id" element={<ServiceDetail />} />
           <Route path="/services/:id/edit" element={<EditService />} />
           <Route path="/regions" element={<Regions />} />
           <Route path="/workers" element={<Workers />} />
@@ -55,6 +58,7 @@ function App() {
           <Route path="/subscription" element={<Subscription />} />
           <Route path="/widget" element={<Widget />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/monitoring" element={<Monitoring />} />
         </Routes>
       </Layout>
       <Toaster 
