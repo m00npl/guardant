@@ -10,7 +10,11 @@ import {
   TrendingUp,
   AlertCircle,
   Shield,
-  Settings
+  Settings,
+  Server,
+  Pause,
+  Play,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -43,6 +47,8 @@ export const PlatformAdminPage: React.FC = () => {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [nests, setNests] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Redirect if not platform admin
@@ -72,6 +78,9 @@ export const PlatformAdminPage: React.FC = () => {
           limit: 50
         });
         setUsers(response.data.data);
+      } else if (activeTab === 'workers') {
+        const response = await axios.get(`${API_URL}/workers/registrations/approved`);
+        setWorkers(response.data.approved || []);
       }
     } catch (error: any) {
       toast.error('Failed to load platform data');
@@ -107,10 +116,61 @@ export const PlatformAdminPage: React.FC = () => {
     }
   };
 
+  const handleWorkerDelete = async (workerId: string) => {
+    if (!confirm('Are you sure you want to delete this worker? This action cannot be undone.')) return;
+    
+    try {
+      await axios.delete(`${API_URL}/workers/${workerId}`);
+      toast.success('Worker deleted successfully');
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to delete worker');
+    }
+  };
+
+  const handleWorkerSuspend = async (workerId: string) => {
+    try {
+      await axios.post(`${API_URL}/workers/${workerId}/suspend`);
+      toast.success('Worker suspended successfully');
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to suspend worker');
+    }
+  };
+
+  const handleWorkerResume = async (workerId: string) => {
+    try {
+      await axios.post(`${API_URL}/workers/${workerId}/resume`);
+      toast.success('Worker resumed successfully');
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to resume worker');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedWorkers.length === 0) {
+      toast.error('No workers selected');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete ${selectedWorkers.length} workers? This action cannot be undone.`)) return;
+    
+    try {
+      await axios.post(`${API_URL}/workers/bulk/delete`, { workerIds: selectedWorkers });
+      toast.success(`${selectedWorkers.length} workers deleted successfully`);
+      setSelectedWorkers([]);
+      loadPlatformData();
+    } catch (error: any) {
+      toast.error('Failed to delete workers');
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'nests', label: 'Organizations', icon: Building2 },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'workers', label: 'Worker Colony', icon: Server },
     { id: 'revenue', label: 'Revenue', icon: DollarSign },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -326,6 +386,128 @@ export const PlatformAdminPage: React.FC = () => {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {/* Workers Tab */}
+            {activeTab === 'workers' && (
+              <div className="space-y-4">
+                {/* Bulk Actions */}
+                {selectedWorkers.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+                    <span className="text-sm text-blue-800">
+                      {selectedWorkers.length} worker{selectedWorkers.length > 1 ? 's' : ''} selected
+                    </span>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() => setSelectedWorkers([])}
+                        className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50"
+                      >
+                        Clear Selection
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        Delete Selected
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Workers List */}
+                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                  <ul className="divide-y divide-gray-200">
+                    {workers.map((worker) => {
+                      const isAlive = worker.lastHeartbeat && 
+                        (Date.now() - new Date(worker.lastHeartbeat).getTime()) < 60000;
+                      
+                      return (
+                        <li key={worker.workerId}>
+                          <div className="px-4 py-4 sm:px-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedWorkers.includes(worker.workerId)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedWorkers([...selectedWorkers, worker.workerId]);
+                                    } else {
+                                      setSelectedWorkers(selectedWorkers.filter(id => id !== worker.workerId));
+                                    }
+                                  }}
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-3"
+                                />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {worker.workerId}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    Owner: {worker.ownerEmail} • Region: {worker.region}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  worker.isSuspended ? 'bg-yellow-100 text-yellow-800' :
+                                  isAlive ? 'bg-green-100 text-green-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {worker.isSuspended ? 'Suspended' : isAlive ? 'Online' : 'Offline'}
+                                </span>
+                                
+                                {worker.isSuspended ? (
+                                  <button
+                                    onClick={() => handleWorkerResume(worker.workerId)}
+                                    className="p-1 text-green-600 hover:text-green-900"
+                                    title="Resume Worker"
+                                  >
+                                    <Play className="h-4 w-4" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleWorkerSuspend(worker.workerId)}
+                                    className="p-1 text-yellow-600 hover:text-yellow-900"
+                                    title="Suspend Worker"
+                                  >
+                                    <Pause className="h-4 w-4" />
+                                  </button>
+                                )}
+                                
+                                <button
+                                  onClick={() => handleWorkerDelete(worker.workerId)}
+                                  className="p-1 text-red-600 hover:text-red-900"
+                                  title="Delete Worker"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-500">
+                              Version: {worker.version || 'Unknown'}
+                              {' • '}
+                              Points: {worker.points || 0}
+                              {' • '}
+                              Approved: {new Date(worker.approvedAt).toLocaleDateString()}
+                              {worker.lastHeartbeat && (
+                                <>
+                                  {' • '}
+                                  Last seen: {new Date(worker.lastHeartbeat).toLocaleString()}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {workers.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      No workers found
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

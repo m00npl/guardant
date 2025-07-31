@@ -198,6 +198,7 @@ workersApi.get('/by-owner/:email', async (c) => {
             totalPoints: status.totalPoints || 0,
             region: status.region,
           } : null,
+          isSuspended: regData.suspended || false,
         });
       }
     }
@@ -489,6 +490,274 @@ workersApi.post('/points/reset-period', async (c) => {
     logger.error('Failed to reset points period', error);
     return c.json({ error: 'Failed to reset period' }, 500);
   }
+});
+
+// Delete specific worker
+workersApi.delete('/:workerId', async (c) => {
+  const workerId = c.req.param('workerId');
+  const user = c.get('user');
+  
+  try {
+    // Get worker registration
+    const registration = await redis.hget('workers:registrations', workerId);
+    if (!registration) {
+      return c.json({ error: 'Worker not found' }, 404);
+    }
+    
+    const config = JSON.parse(registration);
+    
+    // Delete RabbitMQ user if exists
+    if (config.workerUsername) {
+      try {
+        const rabbitmqMgmtUrl = process.env.RABBITMQ_MANAGEMENT_URL || 'http://rabbitmq:15672';
+        const rabbitmqAuth = {
+          username: process.env.RABBITMQ_ADMIN_USER || 'guardant',
+          password: process.env.RABBITMQ_ADMIN_PASS || 'guardant123',
+        };
+        
+        await axios.delete(
+          `${rabbitmqMgmtUrl}/api/users/${config.workerUsername}`,
+          { auth: rabbitmqAuth }
+        );
+        
+        logger.info('Deleted RabbitMQ user', { username: config.workerUsername });
+      } catch (error) {
+        logger.error('Failed to delete RabbitMQ user', error);
+      }
+    }
+    
+    // Delete from Redis
+    await redis.hdel('workers:registrations', workerId);
+    await redis.hdel('workers:heartbeat', workerId);
+    await redis.hdel('workers:heartbeats', workerId);
+    await redis.zrem('workers:pending', workerId);
+    
+    // Remove from owner's list
+    if (config.ownerEmail) {
+      await redis.srem(`workers:by-owner:${config.ownerEmail}`, workerId);
+    }
+    
+    // Delete worker-specific keys
+    const workerKeys = await redis.keys(`worker:${workerId}:*`);
+    if (workerKeys.length > 0) {
+      await redis.del(...workerKeys);
+    }
+    
+    logger.info('Worker deleted', {
+      workerId,
+      deletedBy: user.email,
+    });
+    
+    return c.json({
+      success: true,
+      message: 'Worker deleted successfully',
+      workerId,
+    });
+  } catch (error) {
+    logger.error('Failed to delete worker', error);
+    return c.json({ error: 'Failed to delete worker' }, 500);
+  }
+});
+
+// Suspend/pause worker
+workersApi.post('/:workerId/suspend', async (c) => {
+  const workerId = c.req.param('workerId');
+  const user = c.get('user');
+  
+  try {
+    // Get worker registration
+    const registration = await redis.hget('workers:registrations', workerId);
+    if (!registration) {
+      return c.json({ error: 'Worker not found' }, 404);
+    }
+    
+    const config = JSON.parse(registration);
+    config.suspended = true;
+    config.suspendedAt = Date.now();
+    config.suspendedBy = user.email;
+    
+    // Update registration
+    await redis.hset('workers:registrations', workerId, JSON.stringify(config));
+    
+    // Send suspend command to worker
+    const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+    const connection = await amqp.connect(rabbitmqUrl);
+    const channel = await connection.createChannel();
+    
+    await channel.assertExchange('worker_commands', 'direct');
+    
+    const command = {
+      command: 'suspend',
+      data: {
+        workerId,
+        reason: 'Admin suspended',
+        suspendedBy: user.email,
+      },
+      timestamp: Date.now(),
+    };
+    
+    await channel.publish(
+      'worker_commands',
+      `worker.${workerId}`,
+      Buffer.from(JSON.stringify(command)),
+      { persistent: true }
+    );
+    
+    await channel.close();
+    await connection.close();
+    
+    logger.info('Worker suspended', {
+      workerId,
+      suspendedBy: user.email,
+    });
+    
+    return c.json({
+      success: true,
+      message: 'Worker suspended',
+      workerId,
+    });
+  } catch (error) {
+    logger.error('Failed to suspend worker', error);
+    return c.json({ error: 'Failed to suspend worker' }, 500);
+  }
+});
+
+// Resume worker
+workersApi.post('/:workerId/resume', async (c) => {
+  const workerId = c.req.param('workerId');
+  const user = c.get('user');
+  
+  try {
+    // Get worker registration
+    const registration = await redis.hget('workers:registrations', workerId);
+    if (!registration) {
+      return c.json({ error: 'Worker not found' }, 404);
+    }
+    
+    const config = JSON.parse(registration);
+    delete config.suspended;
+    delete config.suspendedAt;
+    delete config.suspendedBy;
+    config.resumedAt = Date.now();
+    config.resumedBy = user.email;
+    
+    // Update registration
+    await redis.hset('workers:registrations', workerId, JSON.stringify(config));
+    
+    // Send resume command to worker
+    const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+    const connection = await amqp.connect(rabbitmqUrl);
+    const channel = await connection.createChannel();
+    
+    await channel.assertExchange('worker_commands', 'direct');
+    
+    const command = {
+      command: 'resume',
+      data: {
+        workerId,
+        resumedBy: user.email,
+      },
+      timestamp: Date.now(),
+    };
+    
+    await channel.publish(
+      'worker_commands',
+      `worker.${workerId}`,
+      Buffer.from(JSON.stringify(command)),
+      { persistent: true }
+    );
+    
+    await channel.close();
+    await connection.close();
+    
+    logger.info('Worker resumed', {
+      workerId,
+      resumedBy: user.email,
+    });
+    
+    return c.json({
+      success: true,
+      message: 'Worker resumed',
+      workerId,
+    });
+  } catch (error) {
+    logger.error('Failed to resume worker', error);
+    return c.json({ error: 'Failed to resume worker' }, 500);
+  }
+});
+
+// Bulk operations
+workersApi.post('/bulk/delete', async (c) => {
+  const { workerIds } = await c.req.json();
+  const user = c.get('user');
+  
+  if (!Array.isArray(workerIds) || workerIds.length === 0) {
+    return c.json({ error: 'Worker IDs required' }, 400);
+  }
+  
+  const results = {
+    successful: [] as string[],
+    failed: [] as string[],
+  };
+  
+  for (const workerId of workerIds) {
+    try {
+      // Get worker registration
+      const registration = await redis.hget('workers:registrations', workerId);
+      if (!registration) {
+        results.failed.push(workerId);
+        continue;
+      }
+      
+      const config = JSON.parse(registration);
+      
+      // Delete RabbitMQ user
+      if (config.workerUsername) {
+        try {
+          const rabbitmqMgmtUrl = process.env.RABBITMQ_MANAGEMENT_URL || 'http://rabbitmq:15672';
+          const rabbitmqAuth = {
+            username: process.env.RABBITMQ_ADMIN_USER || 'guardant',
+            password: process.env.RABBITMQ_ADMIN_PASS || 'guardant123',
+          };
+          
+          await axios.delete(
+            `${rabbitmqMgmtUrl}/api/users/${config.workerUsername}`,
+            { auth: rabbitmqAuth }
+          );
+        } catch (error) {
+          logger.error('Failed to delete RabbitMQ user', error);
+        }
+      }
+      
+      // Delete from Redis
+      await redis.hdel('workers:registrations', workerId);
+      await redis.hdel('workers:heartbeat', workerId);
+      await redis.hdel('workers:heartbeats', workerId);
+      await redis.zrem('workers:pending', workerId);
+      
+      // Remove from owner's list
+      if (config.ownerEmail) {
+        await redis.srem(`workers:by-owner:${config.ownerEmail}`, workerId);
+      }
+      
+      results.successful.push(workerId);
+    } catch (error) {
+      logger.error(`Failed to delete worker ${workerId}`, error);
+      results.failed.push(workerId);
+    }
+  }
+  
+  logger.info('Bulk delete completed', {
+    deletedBy: user.email,
+    successful: results.successful.length,
+    failed: results.failed.length,
+  });
+  
+  return c.json({
+    success: true,
+    message: `Deleted ${results.successful.length} workers`,
+    results,
+  });
 });
 
 // Change worker region (requires admin approval)
