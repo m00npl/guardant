@@ -63,7 +63,7 @@ export const Services: React.FC = () => {
             Deploy and manage your ant watchers across colonies
           </p>
         </div>
-        <Link to="/services/create" className="btn-primary">
+        <Link to="/services/create" className="btn-primary inline-flex items-center">
           <Plus className="h-5 w-5 mr-2" />
           Deploy New Watcher
         </Link>
@@ -83,7 +83,7 @@ export const Services: React.FC = () => {
             Deploy your first watcher to start monitoring services across the web.
           </p>
           <div className="space-y-4">
-            <Link to="/services/create" className="btn-primary">
+            <Link to="/services/create" className="btn-primary inline-flex items-center justify-center">
               <Plus className="h-5 w-5 mr-2" />
               Deploy Your First Watcher
             </Link>
