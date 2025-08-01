@@ -55,13 +55,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   if (user?.role === 'platform_admin') {
     // Platform admins only see platform management options
     navigation = [
-      { name: 'Overview', href: '/platform', icon: Activity },
-      { name: 'Organizations', href: '/platform?tab=nests', icon: Building2 },
-      { name: 'Users', href: '/platform?tab=users', icon: Users },
-      { name: 'Worker Colony', href: '/platform?tab=workers', icon: Users },
-      { name: 'Revenue', href: '/platform?tab=revenue', icon: DollarSign },
-      { name: 'Security', href: '/platform?tab=security', icon: Shield },
-      { name: 'Settings', href: '/platform?tab=settings', icon: Settings },
+      { name: 'Overview', href: '/platform/overview', icon: Activity },
+      { name: 'Organizations', href: '/platform/nests', icon: Building2 },
+      { name: 'Users', href: '/platform/users', icon: Users },
+      { name: 'Worker Colony', href: '/platform/workers', icon: Users },
+      { name: 'Revenue', href: '/platform/revenue', icon: DollarSign },
+      { name: 'Security', href: '/platform/security', icon: Shield },
+      { name: 'Settings', href: '/platform/settings', icon: Settings },
     ]
   } else {
     // Regular users see normal menu

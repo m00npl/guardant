@@ -60,7 +60,8 @@ function App() {
           <Route path="/widget" element={<Widget />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/monitoring" element={<Monitoring />} />
-          <Route path="/platform" element={<PlatformAdminPage />} />
+          <Route path="/platform" element={<Navigate to="/platform/overview" replace />} />
+          <Route path="/platform/:tab" element={<PlatformAdminPage />} />
         </Routes>
       </Layout>
       <Toaster 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { apiFetch } from '../utils/api';
 import { 
@@ -48,10 +48,9 @@ interface PlatformStats {
 
 export const PlatformAdminPage: React.FC = () => {
   const { user } = useAuthStore();
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const tabFromUrl = searchParams.get('tab') || 'overview';
-  const [activeTab, setActiveTab] = useState(tabFromUrl);
+  const { tab } = useParams<{ tab: string }>();
+  const navigate = useNavigate();
+  const activeTab = tab || 'overview';
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [nests, setNests] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -81,10 +80,6 @@ export const PlatformAdminPage: React.FC = () => {
   if (!user || user.role !== 'platform_admin') {
     return <Navigate to="/admin/dashboard" replace />;
   }
-
-  useEffect(() => {
-    setActiveTab(tabFromUrl);
-  }, [tabFromUrl]);
 
   useEffect(() => {
     loadPlatformData();
@@ -471,7 +466,7 @@ export const PlatformAdminPage: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => navigate(`/platform/${tab.id}`)}
                 className={`
                   flex items-center py-2 px-1 border-b-2 font-medium text-sm
                   ${activeTab === tab.id
@@ -520,7 +515,7 @@ export const PlatformAdminPage: React.FC = () => {
                         </div>
                       </div>
                       <button
-                        onClick={() => setActiveTab('workers')}
+                        onClick={() => navigate('/platform/workers')}
                         className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
                       >
                         Review Now
