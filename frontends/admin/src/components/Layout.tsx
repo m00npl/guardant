@@ -17,7 +17,7 @@ export const Layout: React.FC = () => {
 
   // Add platform admin link if user has the role
   if (user?.role === 'platform_admin') {
-    navigation.push({ name: 'Platform Admin', href: '/platform', icon: '🛡️' });
+    navigation.push({ name: 'Platform Admin', href: '/platform/overview', icon: '🛡️' });
   }
 
   const handleLogout = async () => {
@@ -46,7 +46,7 @@ export const Layout: React.FC = () => {
                     key={item.name}
                     to={item.href}
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                      location.pathname === item.href
+                      location.pathname.startsWith(item.href)
                         ? 'border-blue-500 text-gray-900'
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                     }`}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { 
@@ -43,7 +43,9 @@ interface PlatformStats {
 
 export const PlatformAdminPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { tab } = useParams<{ tab: string }>();
+  const navigate = useNavigate();
+  const activeTab = tab || 'overview';
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [nests, setNests] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -196,7 +198,7 @@ export const PlatformAdminPage: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => navigate(`/platform/${tab.id}`)}
                 className={`
                   py-2 px-1 border-b-2 font-medium text-sm flex items-center
                   ${activeTab === tab.id

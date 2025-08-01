@@ -25,7 +25,8 @@ export const App: React.FC = () => {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/subscription" element={<SubscriptionPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/platform" element={<PlatformAdminPage />} />
+              <Route path="/platform" element={<Navigate to="/platform/overview" />} />
+              <Route path="/platform/:tab" element={<PlatformAdminPage />} />
             </Route>
           </Route>
         </Routes>
