@@ -1171,8 +1171,14 @@ workersApi.get('/regions', async (c) => {
         const parts = locationKey.split(',').map(s => s.trim());
         city = parts[0] || 'Unknown';
         country = parts[1] || 'Unknown';
-        continent = getContinent(country);
-        flag = getFlag(country);
+        
+        // Convert country code to full name if needed
+        if (country.length === 2 || country.length === 3) {
+          country = getCountryFullName(country);
+        }
+        
+        continent = getContinent(parts[1] || ''); // Use original code for continent lookup
+        flag = getFlag(parts[1] || ''); // Use original code for flag lookup
       } else {
         // Fallback to old region-based logic
         city = getCity(locationKey);
@@ -1220,6 +1226,42 @@ workersApi.get('/regions', async (c) => {
 });
 
 // Helper functions for region metadata
+function getCountryFullName(code: string): string {
+  const countryNames: Record<string, string> = {
+    'PL': 'Poland',
+    'DE': 'Germany',
+    'FR': 'France',
+    'GB': 'United Kingdom',
+    'UK': 'United Kingdom',
+    'ES': 'Spain',
+    'IT': 'Italy',
+    'NL': 'Netherlands',
+    'BE': 'Belgium',
+    'SE': 'Sweden',
+    'NO': 'Norway',
+    'DK': 'Denmark',
+    'FI': 'Finland',
+    'US': 'United States',
+    'USA': 'United States',
+    'CA': 'Canada',
+    'MX': 'Mexico',
+    'BR': 'Brazil',
+    'AR': 'Argentina',
+    'CL': 'Chile',
+    'JP': 'Japan',
+    'CN': 'China',
+    'IN': 'India',
+    'SG': 'Singapore',
+    'KR': 'South Korea',
+    'AU': 'Australia',
+    'NZ': 'New Zealand',
+    'ZA': 'South Africa',
+    'EG': 'Egypt',
+    'NG': 'Nigeria',
+  };
+  return countryNames[code] || code;
+}
+
 function getRegionName(region: string): string {
   const names: Record<string, string> = {
     'auto': 'Auto-detected',
@@ -1233,42 +1275,69 @@ function getRegionName(region: string): string {
 }
 
 function getContinent(input: string): string {
-  // Handle country names
+  // Handle country names and codes
   const countryToContinent: Record<string, string> = {
     'Poland': 'Europe',
+    'PL': 'Europe',
     'Germany': 'Europe',
+    'DE': 'Europe',
     'France': 'Europe',
+    'FR': 'Europe',
     'United Kingdom': 'Europe',
     'UK': 'Europe',
+    'GB': 'Europe',
     'Spain': 'Europe',
+    'ES': 'Europe',
     'Italy': 'Europe',
+    'IT': 'Europe',
     'Netherlands': 'Europe',
+    'NL': 'Europe',
     'Belgium': 'Europe',
+    'BE': 'Europe',
     'Sweden': 'Europe',
+    'SE': 'Europe',
     'Norway': 'Europe',
+    'NO': 'Europe',
     'Denmark': 'Europe',
+    'DK': 'Europe',
     'Finland': 'Europe',
+    'FI': 'Europe',
     'United States': 'North America',
     'US': 'North America',
     'USA': 'North America',
     'Canada': 'North America',
+    'CA': 'North America',
     'Mexico': 'North America',
+    'MX': 'North America',
     'Brazil': 'South America',
+    'BR': 'South America',
     'Argentina': 'South America',
+    'AR': 'South America',
     'Chile': 'South America',
+    'CL': 'South America',
     'Japan': 'Asia',
+    'JP': 'Asia',
     'China': 'Asia',
+    'CN': 'Asia',
     'India': 'Asia',
+    'IN': 'Asia',
     'Singapore': 'Asia',
+    'SG': 'Asia',
     'South Korea': 'Asia',
+    'KR': 'Asia',
     'Australia': 'Oceania',
+    'AU': 'Oceania',
     'New Zealand': 'Oceania',
+    'NZ': 'Oceania',
     'South Africa': 'Africa',
+    'ZA': 'Africa',
     'Egypt': 'Africa',
+    'EG': 'Africa',
     'Nigeria': 'Africa',
+    'NG': 'Africa',
   };
   
-  // Check if input is a country name
+  // Check if input is a country name or code
   if (countryToContinent[input]) {
     return countryToContinent[input];
   }
@@ -1307,42 +1376,69 @@ function getCity(region: string): string {
 }
 
 function getFlag(input: string): string {
-  // Handle country names
+  // Handle country names and codes
   const countryFlags: Record<string, string> = {
     'Poland': '🇵🇱',
+    'PL': '🇵🇱',
     'Germany': '🇩🇪',
+    'DE': '🇩🇪',
     'France': '🇫🇷',
+    'FR': '🇫🇷',
     'United Kingdom': '🇬🇧',
     'UK': '🇬🇧',
+    'GB': '🇬🇧',
     'Spain': '🇪🇸',
+    'ES': '🇪🇸',
     'Italy': '🇮🇹',
+    'IT': '🇮🇹',
     'Netherlands': '🇳🇱',
+    'NL': '🇳🇱',
     'Belgium': '🇧🇪',
+    'BE': '🇧🇪',
     'Sweden': '🇸🇪',
+    'SE': '🇸🇪',
     'Norway': '🇳🇴',
+    'NO': '🇳🇴',
     'Denmark': '🇩🇰',
+    'DK': '🇩🇰',
     'Finland': '🇫🇮',
+    'FI': '🇫🇮',
     'United States': '🇺🇸',
     'US': '🇺🇸',
     'USA': '🇺🇸',
     'Canada': '🇨🇦',
+    'CA': '🇨🇦',
     'Mexico': '🇲🇽',
+    'MX': '🇲🇽',
     'Brazil': '🇧🇷',
+    'BR': '🇧🇷',
     'Argentina': '🇦🇷',
+    'AR': '🇦🇷',
     'Chile': '🇨🇱',
+    'CL': '🇨🇱',
     'Japan': '🇯🇵',
+    'JP': '🇯🇵',
     'China': '🇨🇳',
+    'CN': '🇨🇳',
     'India': '🇮🇳',
+    'IN': '🇮🇳',
     'Singapore': '🇸🇬',
+    'SG': '🇸🇬',
     'South Korea': '🇰🇷',
+    'KR': '🇰🇷',
     'Australia': '🇦🇺',
+    'AU': '🇦🇺',
     'New Zealand': '🇳🇿',
+    'NZ': '🇳🇿',
     'South Africa': '🇿🇦',
+    'ZA': '🇿🇦',
     'Egypt': '🇪🇬',
+    'EG': '🇪🇬',
     'Nigeria': '🇳🇬',
+    'NG': '🇳🇬',
   };
   
-  // Check if input is a country name
+  // Check if input is a country name or code
   if (countryFlags[input]) {
     return countryFlags[input];
   }
