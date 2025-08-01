@@ -20,13 +20,13 @@ async function reassignOrphanedServices() {
   
   try {
     // Get moon nest ID
-    const moonNestKey = await redis.get('nest:email:moon.pl.kr@gmail.com');
-    if (!moonNestKey) {
+    const moonNestId = await redis.get('nest:email:moon.pl.kr@gmail.com');
+    if (!moonNestId) {
       console.error('❌ Could not find nest for moon.pl.kr@gmail.com');
       process.exit(1);
     }
     
-    const moonNestData = await redis.get(moonNestKey);
+    const moonNestData = await redis.get(`nest:${moonNestId}`);
     const moonNest = JSON.parse(moonNestData);
     console.log(`✅ Found moon nest: ${moonNest.id} (${moonNest.subdomain}.guardant.me)\n`);
     

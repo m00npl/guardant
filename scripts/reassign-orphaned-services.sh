@@ -3,13 +3,15 @@
 echo "🔍 Reassigning orphaned services to moon.pl.kr@gmail.com..."
 
 # Get the moon nest ID
-MOON_NEST_DATA=$(docker compose exec -T redis redis-cli get "nest:email:moon.pl.kr@gmail.com")
-MOON_NEST_ID=$(echo "$MOON_NEST_DATA" | grep -o '"id":"[^"]*"' | sed 's/"id":"\([^"]*\)"/\1/')
+MOON_NEST_ID=$(docker compose exec -T redis redis-cli get "nest:email:moon.pl.kr@gmail.com")
 
-if [ -z "$MOON_NEST_ID" ]; then
+if [ -z "$MOON_NEST_ID" ] || [ "$MOON_NEST_ID" = "(nil)" ]; then
     echo "❌ Could not find nest for moon.pl.kr@gmail.com"
     exit 1
 fi
+
+# Remove quotes if present
+MOON_NEST_ID=$(echo "$MOON_NEST_ID" | tr -d '"')
 
 echo "✅ Found moon nest: $MOON_NEST_ID"
 echo ""
