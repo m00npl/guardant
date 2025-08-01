@@ -28,10 +28,16 @@ export const CreateService: React.FC = () => {
   const { token, nest } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [currentWatcherCount, setCurrentWatcherCount] = useState(0)
+  const [availableRegions, setAvailableRegions] = useState<any[]>([])
+  const [loadingRegions, setLoadingRegions] = useState(true)
   
-  // Fetch current watcher count on mount
+  // Minimum interval based on subscription tier
+  const minInterval = nest?.subscription.tier === 'free' ? 900 : 30 // 15 minutes for free, 30 seconds for pro/unlimited
+  
+  // Fetch current watcher count and regions on mount
   React.useEffect(() => {
     fetchWatcherCount()
+    fetchAvailableRegions()
   }, [])
   
   const fetchWatcherCount = async () => {
@@ -51,11 +57,41 @@ export const CreateService: React.FC = () => {
     }
   }
   
+  const fetchAvailableRegions = async () => {
+    try {
+      setLoadingRegions(true)
+      const response = await apiFetch('/api/admin/workers/regions', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        // Transform the regions to match our expected format
+        const regions = data.regions.map((region: any) => ({
+          id: region.id,
+          name: region.name || region.city || region.id,
+          flag: region.flag || '🌍',
+          available: region.available,
+          workerCount: region.activeWorkerAnts || 0,
+          uptime: region.uptime || 0
+        }))
+        setAvailableRegions(regions)
+      }
+    } catch (error) {
+      console.error('Failed to fetch regions:', error)
+      toast.error('Failed to load available regions')
+    } finally {
+      setLoadingRegions(false)
+    }
+  }
+  
   const [formData, setFormData] = useState({
     name: '',
     type: 'web' as ServiceType,
     target: '',
-    interval: 60,
+    interval: nest?.subscription.tier === 'free' ? 900 : 60,
     monitoring: {
       regions: [] as string[],
       strategy: 'closest' as MonitoringStrategy,
@@ -129,19 +165,6 @@ export const CreateService: React.FC = () => {
       color: 'indigo',
       placeholder: 'https://api.uptimerobot.com/v2/...'
     },
-  ]
-
-  const availableRegions = [
-    { id: 'eu-west-1', name: 'Europe West (Frankfurt)', flag: '🇩🇪', available: true },
-    { id: 'eu-central-1', name: 'Europe Central (Warsaw)', flag: '🇵🇱', available: true },
-    { id: 'eu-west-2', name: 'Europe West (London)', flag: '🇬🇧', available: true },
-    { id: 'us-east-1', name: 'US East (Virginia)', flag: '🇺🇸', available: true },
-    { id: 'us-west-1', name: 'US West (California)', flag: '🇺🇸', available: true },
-    { id: 'ca-central-1', name: 'Canada Central (Toronto)', flag: '🇨🇦', available: true },
-    { id: 'ap-southeast-1', name: 'Asia Pacific (Singapore)', flag: '🇸🇬', available: false },
-    { id: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)', flag: '🇯🇵', available: false },
-    { id: 'ap-south-1', name: 'Asia Pacific (Mumbai)', flag: '🇮🇳', available: false },
-    { id: 'sa-east-1', name: 'South America (São Paulo)', flag: '🇧🇷', available: false },
   ]
 
   const strategies = [
@@ -361,9 +384,9 @@ export const CreateService: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <input
                   type="range"
-                  min="10"
+                  min={minInterval}
                   max="3600"
-                  step="10"
+                  step={minInterval === 900 ? 300 : 30}
                   className="flex-1"
                   value={formData.interval}
                   onChange={(e) => setFormData({ ...formData, interval: parseInt(e.target.value) })}
@@ -371,12 +394,12 @@ export const CreateService: React.FC = () => {
                 <div className="flex items-center space-x-2 min-w-0">
                   <Clock className="h-4 w-4 text-gray-400" />
                   <span className="text-sm font-medium text-gray-900">
-                    {formData.interval}s
+                    {formData.interval < 60 ? `${formData.interval}s` : `${Math.floor(formData.interval / 60)}m`}
                   </span>
                 </div>
               </div>
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>10s (Frequent)</span>
+                <span>{minInterval === 900 ? '15m' : '30s'} (Frequent)</span>
                 <span>1h (Rarely)</span>
               </div>
             </div>
@@ -388,6 +411,17 @@ export const CreateService: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             🗺️ Select Monitoring Colonies
           </h3>
+          {loadingRegions ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : availableRegions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <MapPin className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+              <p>No monitoring colonies available yet.</p>
+              <p className="text-sm mt-1">Deploy workers to activate regions.</p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {availableRegions.map((region) => (
               <button
@@ -420,6 +454,7 @@ export const CreateService: React.FC = () => {
               </button>
             ))}
           </div>
+          )}
 
           {/* Strategy Selection */}
           <div className="border-t pt-6">
