@@ -13,7 +13,7 @@ import {
   TrendingUp,
   RefreshCw
 } from 'lucide-react'
-import { ColonyLeafletMap } from '../components/ColonyLeafletMap'
+import { ColonyMap } from '../components/ColonyMap'
 import { LatencyBadge } from '../components/LatencyDisplay'
 
 interface Colony {
@@ -395,7 +395,7 @@ export const Regions: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           🌍 Global Colony Map
         </h3>
-        <ColonyLeafletMap />
+        <ColonyMap />
       </div>
     </div>
   )
