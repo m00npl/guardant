@@ -33,7 +33,23 @@ const cityCoordinates: Record<string, { lat: number; lng: number }> = {
   'São Paulo': { lat: -23.5505, lng: -46.6333 },
   'Toronto': { lat: 43.6532, lng: -79.3832 },
   'Dubai': { lat: 25.2048, lng: 55.2708 },
-  'Seoul': { lat: 37.5665, lng: 126.9780 }
+  'Seoul': { lat: 37.5665, lng: 126.9780 },
+  'Berlin': { lat: 52.5200, lng: 13.4050 },
+  'Amsterdam': { lat: 52.3676, lng: 4.9041 },
+  'Stockholm': { lat: 59.3293, lng: 18.0686 },
+  'Moscow': { lat: 55.7558, lng: 37.6173 },
+  'Beijing': { lat: 39.9042, lng: 116.4074 },
+  'Hong Kong': { lat: 22.3193, lng: 114.1694 },
+  'Los Angeles': { lat: 34.0522, lng: -118.2437 },
+  'Chicago': { lat: 41.8781, lng: -87.6298 },
+  'Miami': { lat: 25.7617, lng: -80.1918 },
+  'Seattle': { lat: 47.6062, lng: -122.3321 },
+  'Boston': { lat: 42.3601, lng: -71.0589 },
+  'Dallas': { lat: 32.7767, lng: -96.7970 },
+  'Atlanta': { lat: 33.7490, lng: -84.3880 },
+  'Denver': { lat: 39.7392, lng: -104.9903 },
+  'Phoenix': { lat: 33.4484, lng: -112.0740 },
+  'Las Vegas': { lat: 36.1699, lng: -115.1398 }
 }
 
 export const ColonyMap: React.FC = () => {
@@ -62,8 +78,49 @@ export const ColonyMap: React.FC = () => {
       if (response.ok) {
         const data = await response.json()
         const mappedColonies: Colony[] = data.regions.map((region: any) => {
-          const city = region.city || region.name?.split(',')[0] || 'Unknown'
-          const coordinates = cityCoordinates[city] || { lat: 0, lng: 0 }
+          // Extract city from the region name
+          let city = 'Unknown'
+          if (region.city) {
+            city = region.city
+          } else if (region.name) {
+            // Parse city from name like "Europe Central (Warsaw)"
+            const match = region.name.match(/\(([^)]+)\)/)
+            if (match) {
+              city = match[1]
+            } else {
+              city = region.name.split(',')[0].trim()
+            }
+          }
+          
+          // Get coordinates, fallback to approximate locations if not found
+          let coordinates = cityCoordinates[city]
+          if (!coordinates) {
+            // Try to approximate based on continent
+            const continent = region.continent || 'Unknown'
+            switch(continent) {
+              case 'Europe':
+                coordinates = { lat: 50 + Math.random() * 10, lng: 10 + Math.random() * 20 }
+                break
+              case 'North America':
+                coordinates = { lat: 40 + Math.random() * 10, lng: -100 + Math.random() * 20 }
+                break
+              case 'Asia':
+                coordinates = { lat: 35 + Math.random() * 20, lng: 100 + Math.random() * 30 }
+                break
+              case 'South America':
+                coordinates = { lat: -15 + Math.random() * 20, lng: -60 + Math.random() * 20 }
+                break
+              case 'Africa':
+                coordinates = { lat: 0 + Math.random() * 30, lng: 20 + Math.random() * 20 }
+                break
+              case 'Australia':
+                coordinates = { lat: -25 + Math.random() * 10, lng: 135 + Math.random() * 15 }
+                break
+              default:
+                coordinates = { lat: 0, lng: 0 }
+            }
+          }
+          
           return {
             id: region.id,
             city: city,
@@ -73,7 +130,7 @@ export const ColonyMap: React.FC = () => {
             activeWorkers: region.activeWorkerAnts || 0,
             status: region.available ? 'online' : 'offline'
           }
-        }).filter((colony: Colony) => colony.coordinates.lat !== 0) // Only show colonies with known coordinates
+        })
         setColonies(mappedColonies)
       }
     } catch (error) {
@@ -132,63 +189,66 @@ export const ColonyMap: React.FC = () => {
   const height = 600
 
   return (
-    <div className="relative w-full overflow-hidden rounded-lg bg-gray-900">
+    <div className="relative w-full overflow-hidden rounded-lg bg-gradient-to-b from-blue-50 to-blue-100">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
         className="w-full h-auto"
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* World map background */}
-        <rect width={width} height={height} fill="#111827" />
+        {/* Ocean background */}
+        <rect width={width} height={height} fill="#dbeafe" />
         
-        {/* Simplified world map outline */}
-        <g opacity="0.2">
-          {/* Continental outlines - simplified */}
+        {/* World map */}
+        <g opacity="0.3">
+          {/* Simplified continents */}
+          {/* North America */}
           <path
-            d="M 300 200 Q 400 180 500 200 Q 550 220 600 200 Q 650 180 700 200 L 700 300 Q 650 320 600 300 Q 550 280 500 300 Q 400 320 300 300 Z"
-            fill="none"
-            stroke="#4B5563"
+            d="M 150 180 Q 200 160 250 170 L 280 190 L 300 220 L 290 250 L 270 280 L 250 300 L 220 320 L 180 310 L 150 290 L 130 260 L 120 230 L 130 200 Z"
+            fill="#86efac"
+            stroke="#22c55e"
             strokeWidth="1"
           />
+          
+          {/* South America */}
           <path
-            d="M 100 250 Q 150 230 200 250 L 200 350 Q 150 370 100 350 Z"
-            fill="none"
-            stroke="#4B5563"
+            d="M 230 350 L 250 360 L 260 380 L 270 410 L 265 440 L 255 470 L 240 490 L 220 485 L 210 460 L 205 430 L 210 400 L 220 370 Z"
+            fill="#86efac"
+            stroke="#22c55e"
             strokeWidth="1"
           />
+          
+          {/* Europe */}
           <path
-            d="M 750 400 Q 800 380 850 400 L 850 450 Q 800 470 750 450 Z"
-            fill="none"
-            stroke="#4B5563"
+            d="M 560 160 L 580 155 L 600 160 L 620 165 L 635 170 L 640 180 L 635 195 L 625 205 L 610 210 L 590 205 L 570 200 L 555 190 L 550 175 L 555 165 Z"
+            fill="#86efac"
+            stroke="#22c55e"
             strokeWidth="1"
           />
-        </g>
-
-        {/* Grid lines */}
-        <g opacity="0.1">
-          {[...Array(12)].map((_, i) => (
-            <line
-              key={`v-${i}`}
-              x1={i * 100}
-              y1="0"
-              x2={i * 100}
-              y2={height}
-              stroke="#374151"
-              strokeWidth="1"
-            />
-          ))}
-          {[...Array(6)].map((_, i) => (
-            <line
-              key={`h-${i}`}
-              x1="0"
-              y1={i * 100}
-              x2={width}
-              y2={i * 100}
-              stroke="#374151"
-              strokeWidth="1"
-            />
-          ))}
+          
+          {/* Africa */}
+          <path
+            d="M 580 250 L 600 240 L 620 245 L 630 260 L 635 280 L 640 310 L 635 340 L 625 370 L 610 390 L 590 395 L 570 385 L 560 360 L 555 330 L 560 300 L 565 270 L 570 255 Z"
+            fill="#86efac"
+            stroke="#22c55e"
+            strokeWidth="1"
+          />
+          
+          {/* Asia */}
+          <path
+            d="M 680 140 L 750 130 L 820 140 L 880 160 L 920 180 L 940 210 L 930 240 L 900 260 L 850 270 L 800 265 L 750 255 L 700 245 L 670 230 L 660 210 L 665 190 L 670 170 L 675 150 Z"
+            fill="#86efac"
+            stroke="#22c55e"
+            strokeWidth="1"
+          />
+          
+          {/* Australia */}
+          <path
+            d="M 850 420 L 890 415 L 920 425 L 935 440 L 930 460 L 915 475 L 890 480 L 860 475 L 845 460 L 840 440 L 845 425 Z"
+            fill="#86efac"
+            stroke="#22c55e"
+            strokeWidth="1"
+          />
         </g>
 
         {/* Connections */}
@@ -201,25 +261,31 @@ export const ColonyMap: React.FC = () => {
             const from = projectCoordinates(fromColony.coordinates.lat, fromColony.coordinates.lng, width, height)
             const to = projectCoordinates(toColony.coordinates.lat, toColony.coordinates.lng, width, height)
 
+            // Calculate control point for curved path
+            const midX = (from.x + to.x) / 2
+            const midY = (from.y + to.y) / 2
+            const distance = Math.sqrt(Math.pow(to.x - from.x, 2) + Math.pow(to.y - from.y, 2))
+            const curve = Math.min(distance * 0.3, 100)
+            const controlX = midX
+            const controlY = midY - curve
+
             return (
               <g key={`connection-${index}`}>
                 {/* Connection line */}
-                <line
-                  x1={from.x}
-                  y1={from.y}
-                  x2={to.x}
-                  y2={to.y}
+                <path
+                  d={`M ${from.x} ${from.y} Q ${controlX} ${controlY} ${to.x} ${to.y}`}
                   stroke="#3B82F6"
                   strokeWidth="2"
-                  opacity="0.3"
+                  opacity="0.4"
+                  fill="none"
                   strokeDasharray="5,5"
                 />
                 {/* Animated packet */}
-                <circle r="4" fill="#60A5FA">
+                <circle r="6" fill="#60A5FA">
                   <animateMotion
                     dur="2s"
                     repeatCount="1"
-                    path={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
+                    path={`M ${from.x} ${from.y} Q ${controlX} ${controlY} ${to.x} ${to.y}`}
                   />
                 </circle>
               </g>
@@ -237,10 +303,10 @@ export const ColonyMap: React.FC = () => {
                 {/* Pulse animation for online colonies */}
                 {colony.status === 'online' && (
                   <>
-                    <circle r="20" fill="#3B82F6" opacity="0.2">
+                    <circle r="25" fill="#3B82F6" opacity="0.2">
                       <animate
                         attributeName="r"
-                        values="20;30;20"
+                        values="25;35;25"
                         dur="2s"
                         repeatCount="indefinite"
                       />
@@ -251,10 +317,10 @@ export const ColonyMap: React.FC = () => {
                         repeatCount="indefinite"
                       />
                     </circle>
-                    <circle r="15" fill="#3B82F6" opacity="0.3">
+                    <circle r="18" fill="#3B82F6" opacity="0.3">
                       <animate
                         attributeName="r"
-                        values="15;20;15"
+                        values="18;23;18"
                         dur="2s"
                         repeatCount="indefinite"
                       />
@@ -262,12 +328,16 @@ export const ColonyMap: React.FC = () => {
                   </>
                 )}
                 
-                {/* Colony dot */}
+                {/* Colony dot with white border for visibility */}
+                <circle
+                  r="10"
+                  fill="white"
+                  stroke="#1F2937"
+                  strokeWidth="1"
+                />
                 <circle
                   r="8"
                   fill={colony.status === 'online' ? '#3B82F6' : '#6B7280'}
-                  stroke="#1F2937"
-                  strokeWidth="2"
                 />
                 
                 {/* Inner dot */}
@@ -276,12 +346,21 @@ export const ColonyMap: React.FC = () => {
                   fill={colony.status === 'online' ? '#93C5FD' : '#9CA3AF'}
                 />
                 
-                {/* Colony label */}
+                {/* Colony label with background for readability */}
+                <rect
+                  x={-40}
+                  y={-28}
+                  width="80"
+                  height="16"
+                  fill="white"
+                  opacity="0.9"
+                  rx="2"
+                />
                 <text
                   x="0"
-                  y="-15"
+                  y="-18"
                   textAnchor="middle"
-                  fill="white"
+                  fill="#1F2937"
                   fontSize="12"
                   fontWeight="600"
                 >
@@ -290,15 +369,26 @@ export const ColonyMap: React.FC = () => {
                 
                 {/* Worker count */}
                 {colony.activeWorkers > 0 && (
-                  <text
-                    x="0"
-                    y="25"
-                    textAnchor="middle"
-                    fill="#9CA3AF"
-                    fontSize="10"
-                  >
-                    {colony.activeWorkers} workers
-                  </text>
+                  <>
+                    <rect
+                      x={-30}
+                      y="18"
+                      width="60"
+                      height="14"
+                      fill="white"
+                      opacity="0.9"
+                      rx="2"
+                    />
+                    <text
+                      x="0"
+                      y="28"
+                      textAnchor="middle"
+                      fill="#6B7280"
+                      fontSize="10"
+                    >
+                      {colony.activeWorkers} workers
+                    </text>
+                  </>
                 )}
               </g>
             )
@@ -307,24 +397,27 @@ export const ColonyMap: React.FC = () => {
 
         {/* Legend */}
         <g transform="translate(20, 20)">
-          <rect x="0" y="0" width="150" height="80" fill="#1F2937" opacity="0.9" rx="5" />
-          <text x="10" y="20" fill="white" fontSize="14" fontWeight="600">Colony Status</text>
+          <rect x="0" y="0" width="150" height="80" fill="white" opacity="0.95" rx="5" stroke="#e5e7eb" />
+          <text x="10" y="20" fill="#1F2937" fontSize="14" fontWeight="600">Colony Status</text>
           <circle cx="20" cy="40" r="6" fill="#3B82F6" />
-          <text x="35" y="45" fill="#9CA3AF" fontSize="12">Online</text>
+          <text x="35" y="45" fill="#6B7280" fontSize="12">Online</text>
           <circle cx="20" cy="60" r="6" fill="#6B7280" />
-          <text x="35" y="65" fill="#9CA3AF" fontSize="12">Offline</text>
+          <text x="35" y="65" fill="#6B7280" fontSize="12">Offline</text>
         </g>
       </svg>
       
       {/* Info overlay */}
-      <div className="absolute bottom-4 right-4 bg-gray-800 bg-opacity-90 rounded-lg p-3">
-        <div className="text-xs text-gray-300">
+      <div className="absolute bottom-4 right-4 bg-white bg-opacity-95 rounded-lg p-3 shadow-lg">
+        <div className="text-xs text-gray-700">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
             <span>Live monitoring traffic</span>
           </div>
-          <div className="mt-1">
+          <div className="mt-1 font-medium">
             {colonies.filter(c => c.status === 'online').length} active colonies
+          </div>
+          <div className="text-gray-500">
+            {colonies.length} total locations
           </div>
         </div>
       </div>
