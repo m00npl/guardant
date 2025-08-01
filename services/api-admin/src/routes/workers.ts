@@ -1160,12 +1160,16 @@ workersApi.get('/regions', async (c) => {
       let country = 'Unknown';
       let continent = 'Unknown';
       let flag = '🌍';
+      let regionId = locationKey; // Default to locationKey
       
       if (data.location && data.location.city) {
         city = data.location.city;
         country = data.location.country || 'Unknown';
         continent = data.location.continent || getContinent(data.location.country || '');
         flag = getFlag(data.location.country || '');
+        
+        // Generate a region ID based on continent and country
+        regionId = generateRegionId(continent, country);
       } else if (locationKey.includes(',')) {
         // Parse from "City, Country" format
         const parts = locationKey.split(',').map(s => s.trim());
@@ -1179,16 +1183,27 @@ workersApi.get('/regions', async (c) => {
         
         continent = getContinent(parts[1] || ''); // Use original code for continent lookup
         flag = getFlag(parts[1] || ''); // Use original code for flag lookup
+        
+        // Generate a region ID based on continent and country
+        regionId = generateRegionId(continent, parts[1] || country);
+      } else if (locationKey.match(/^[a-z]{2}-[a-z]+-\d+$/)) {
+        // This is already an AWS-style region ID
+        regionId = locationKey;
+        city = getCity(locationKey);
+        country = getCountry(locationKey);
+        continent = getContinent(locationKey);
+        flag = getFlag(locationKey);
       } else {
         // Fallback to old region-based logic
         city = getCity(locationKey);
         country = getCountry(locationKey);
         continent = getContinent(locationKey);
         flag = getFlag(locationKey);
+        regionId = generateRegionId(continent, country);
       }
       
       return {
-        id: locationKey,
+        id: regionId,
         name: `${city}, ${country}`,
         continent,
         country,
@@ -1226,6 +1241,43 @@ workersApi.get('/regions', async (c) => {
 });
 
 // Helper functions for region metadata
+function generateRegionId(continent: string, countryCode: string): string {
+  // Generate AWS-style region IDs from continent and country
+  const continentPrefix: Record<string, string> = {
+    'Europe': 'eu',
+    'North America': 'us',
+    'South America': 'sa',
+    'Asia': 'ap',
+    'Africa': 'af',
+    'Oceania': 'au',
+    'Global': 'global'
+  };
+  
+  const countryToRegion: Record<string, string> = {
+    'PL': 'central-1',
+    'DE': 'west-1',
+    'FR': 'west-2',
+    'UK': 'west-3',
+    'GB': 'west-3',
+    'ES': 'south-1',
+    'IT': 'south-2',
+    'NL': 'north-1',
+    'US': 'east-1',
+    'CA': 'north-1',
+    'BR': 'east-1',
+    'JP': 'northeast-1',
+    'SG': 'southeast-1',
+    'AU': 'southeast-2',
+    'IN': 'south-1',
+    'CN': 'north-1',
+  };
+  
+  const prefix = continentPrefix[continent] || 'global';
+  const suffix = countryToRegion[countryCode] || 'region-1';
+  
+  return `${prefix}-${suffix}`;
+}
+
 function getCountryFullName(code: string): string {
   const countryNames: Record<string, string> = {
     'PL': 'Poland',
