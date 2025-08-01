@@ -47,7 +47,7 @@ while IFS= read -r file; do
     echo -e "  • $file"
     
     # Frontend Admin
-    if [[ $file == apps/frontend-admin/* ]] || [[ $file == frontends/admin/* ]]; then
+    if [[ $file == apps/frontend-admin/* ]]; then
         add_service "admin-frontend"
     fi
     
