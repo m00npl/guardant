@@ -1210,9 +1210,12 @@ workersApi.get('/regions', async (c) => {
         regionId = generateRegionId(continent, country);
       }
       
+      // Create a professional region name
+      const regionDisplayName = getRegionDisplayName(continent, country, city);
+      
       return {
         id: regionId,
-        name: `${city}, ${country}`,
+        name: regionDisplayName,
         continent,
         country,
         city,
@@ -1249,6 +1252,55 @@ workersApi.get('/regions', async (c) => {
 });
 
 // Helper functions for region metadata
+function getRegionDisplayName(continent: string, country: string, city: string): string {
+  // Create professional AWS-style region names
+  const continentNames: Record<string, string> = {
+    'Europe': 'Europe',
+    'North America': 'North America',
+    'South America': 'South America',
+    'Asia': 'Asia Pacific',
+    'Africa': 'Africa',
+    'Oceania': 'Asia Pacific',
+    'Global': 'Global'
+  };
+  
+  // Special cases for specific countries/cities
+  if (continent === 'Europe') {
+    if (country === 'Poland') return `Europe Central (${city})`;
+    if (country === 'Germany') {
+      if (city === 'Frankfurt') return 'Europe West (Frankfurt)';
+      return `Europe West (${city})`;
+    }
+    if (country === 'United Kingdom') return `Europe North (${city})`;
+    if (country === 'France') return `Europe West (${city})`;
+    if (country === 'Netherlands') return `Europe North (${city})`;
+    if (country === 'Spain') return `Europe South (${city})`;
+    if (country === 'Italy') return `Europe South (${city})`;
+    return `Europe (${city})`;
+  }
+  
+  if (continent === 'North America') {
+    if (country === 'United States') {
+      if (city === 'Ashburn' || city === 'Virginia') return 'US East (Virginia)';
+      if (city === 'San Francisco' || city === 'California') return 'US West (California)';
+      return `US (${city})`;
+    }
+    if (country === 'Canada') return `Canada (${city})`;
+    return `${continentNames[continent] || continent} (${city})`;
+  }
+  
+  if (continent === 'Asia' || continent === 'Asia Pacific') {
+    if (country === 'Singapore') return 'Asia Pacific (Singapore)';
+    if (country === 'Japan') return 'Asia Pacific (Tokyo)';
+    if (country === 'India') return 'Asia Pacific (Mumbai)';
+    if (country === 'Australia') return 'Asia Pacific (Sydney)';
+    return `Asia Pacific (${city})`;
+  }
+  
+  // Default format
+  return `${continentNames[continent] || continent} (${city})`;
+}
+
 function generateRegionId(continent: string, countryCode: string): string {
   // Generate AWS-style region IDs from continent and country
   const continentPrefix: Record<string, string> = {
