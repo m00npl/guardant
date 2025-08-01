@@ -1,22 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet'
+import { MapContainer, TileLayer, CircleMarker, Popup, Polyline } from 'react-leaflet'
 import { LatLngExpression } from 'leaflet'
 import { apiFetch } from '../utils/api'
 import 'leaflet/dist/leaflet.css'
-
-// Fix for default markers in Leaflet
-import L from 'leaflet'
-import icon from 'leaflet/dist/images/marker-icon.png'
-import iconShadow from 'leaflet/dist/images/marker-shadow.png'
-
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-})
-
-L.Marker.prototype.options.icon = DefaultIcon
 
 interface Colony {
   id: string
@@ -193,12 +179,16 @@ export const ColonyLeafletMap: React.FC = () => {
   const center: LatLngExpression = [30, 0] // Center on Europe/Africa
 
   return (
-    <div className="relative w-full h-[600px] rounded-lg overflow-hidden">
+    <div className="relative w-full h-[600px] rounded-lg overflow-hidden shadow-lg">
       <MapContainer 
         center={center} 
         zoom={2} 
         className="w-full h-full"
         style={{ background: '#f0f9ff' }}
+        scrollWheelZoom={true}
+        doubleClickZoom={true}
+        touchZoom={true}
+        zoomControl={true}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -255,10 +245,10 @@ export const ColonyLeafletMap: React.FC = () => {
               weight={3}
             >
               <Popup>
-                <div className="text-center">
-                  <h3 className="font-semibold text-lg">{colony.city}</h3>
-                  <p className="text-sm text-gray-600">{colony.country}</p>
-                  <div className="mt-2">
+                <div className="text-center p-2">
+                  <h3 className="font-semibold text-lg mb-1">{colony.city}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{colony.country}</p>
+                  <div className="mb-2">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       colony.status === 'online' 
                         ? 'bg-green-100 text-green-800' 
@@ -268,7 +258,7 @@ export const ColonyLeafletMap: React.FC = () => {
                     </span>
                   </div>
                   {colony.activeWorkers > 0 && (
-                    <p className="mt-2 text-sm">
+                    <p className="text-sm">
                       <strong>{colony.activeWorkers}</strong> active workers
                     </p>
                   )}
@@ -280,7 +270,7 @@ export const ColonyLeafletMap: React.FC = () => {
       </MapContainer>
 
       {/* Legend */}
-      <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 z-[1000]">
+      <div className="absolute top-4 left-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 z-[1000]">
         <h4 className="text-sm font-semibold text-gray-900 mb-2">Colony Status</h4>
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
@@ -299,7 +289,7 @@ export const ColonyLeafletMap: React.FC = () => {
       </div>
 
       {/* Info overlay */}
-      <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 z-[1000]">
+      <div className="absolute bottom-4 right-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 z-[1000]">
         <div className="text-sm text-gray-700">
           <div className="flex items-center space-x-2 mb-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -327,6 +317,18 @@ export const ColonyLeafletMap: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <style>{`
+        .leaflet-container {
+          font-family: inherit;
+        }
+        .leaflet-popup-content-wrapper {
+          border-radius: 8px;
+        }
+        .leaflet-popup-content {
+          margin: 0;
+        }
+      `}</style>
     </div>
   )
 }
