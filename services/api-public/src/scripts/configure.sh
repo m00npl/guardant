@@ -206,6 +206,16 @@ else
     exit 1
 fi
 
+# Fix permissions after installation
+echo -e "${BLUE}🔧 Setting proper permissions...${NC}"
+sudo chown -R $USER:$USER $INSTALL_DIR
+echo -e "${GREEN}✓ Permissions fixed${NC}"
+
+# Configure git safe directory
+echo -e "${BLUE}🔧 Configuring git safe directory...${NC}"
+git config --global --add safe.directory $INSTALL_DIR
+echo -e "${GREEN}✓ Git configuration updated${NC}"
+
 # Show completion message with next steps
 echo ""
 echo -e "${GREEN}✅ Installation complete!${NC}"
