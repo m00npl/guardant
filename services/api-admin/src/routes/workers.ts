@@ -1102,6 +1102,7 @@ workersApi.get('/regions', async (c) => {
       totalPoints: number;
       totalJobs: number;
       workers: any[];
+      location?: any;
     }>();
     
     // Process all workers
@@ -1111,20 +1112,25 @@ workersApi.get('/regions', async (c) => {
       
       if (!registration?.approved) return;
       
-      const region = heartbeat.region || registration.region || 'unknown';
+      // Use location data if available, otherwise fall back to region
+      const locationKey = heartbeat.location ? 
+        `${heartbeat.location.city || 'Unknown'}, ${heartbeat.location.country || 'Unknown'}` :
+        (heartbeat.region || registration.region || 'unknown');
+        
       const isActive = Date.now() - (heartbeat.lastSeen || heartbeat.timestamp || 0) < 60000; // Active if heartbeat within 1 minute
       
-      if (!regionMap.has(region)) {
-        regionMap.set(region, {
+      if (!regionMap.has(locationKey)) {
+        regionMap.set(locationKey, {
           workerCount: 0,
           activeWorkers: 0,
           totalPoints: 0,
           totalJobs: 0,
-          workers: []
+          workers: [],
+          location: heartbeat.location || {}
         });
       }
       
-      const regionData = regionMap.get(region)!;
+      const regionData = regionMap.get(locationKey)!;
       regionData.workerCount++;
       if (isActive) regionData.activeWorkers++;
       regionData.totalPoints += heartbeat.totalPoints || 0;
@@ -1140,24 +1146,48 @@ workersApi.get('/regions', async (c) => {
     });
     
     // Convert to array and add region metadata
-    const regions = Array.from(regionMap.entries()).map(([region, data]) => {
+    const regions = Array.from(regionMap.entries()).map(([locationKey, data]) => {
       // Calculate average latency (mock for now, could be real data)
-      const avgLatency = region === 'auto' ? 45 : 
-                        region.startsWith('eu-') ? 38 :
-                        region.startsWith('us-') ? 23 : 55;
+      const avgLatency = Math.floor(Math.random() * 50) + 20; // Random between 20-70ms
       
       // Calculate uptime (based on active workers ratio)
       const uptime = data.workerCount > 0 
         ? (data.activeWorkers / data.workerCount) * 100 
         : 0;
       
+      // Extract city and country from locationKey or use location data
+      let city = 'Unknown';
+      let country = 'Unknown';
+      let continent = 'Unknown';
+      let flag = '🌍';
+      
+      if (data.location && data.location.city) {
+        city = data.location.city;
+        country = data.location.country || 'Unknown';
+        continent = data.location.continent || getContinent(data.location.country || '');
+        flag = getFlag(data.location.country || '');
+      } else if (locationKey.includes(',')) {
+        // Parse from "City, Country" format
+        const parts = locationKey.split(',').map(s => s.trim());
+        city = parts[0] || 'Unknown';
+        country = parts[1] || 'Unknown';
+        continent = getContinent(country);
+        flag = getFlag(country);
+      } else {
+        // Fallback to old region-based logic
+        city = getCity(locationKey);
+        country = getCountry(locationKey);
+        continent = getContinent(locationKey);
+        flag = getFlag(locationKey);
+      }
+      
       return {
-        id: region,
-        name: getRegionName(region),
-        continent: getContinent(region),
-        country: getCountry(region),
-        city: getCity(region),
-        flag: getFlag(region),
+        id: locationKey,
+        name: `${city}, ${country}`,
+        continent,
+        country,
+        city,
+        flag,
         available: data.activeWorkers > 0,
         workerAnts: data.workerCount,
         activeWorkerAnts: data.activeWorkers,
@@ -1202,12 +1232,55 @@ function getRegionName(region: string): string {
   return names[region] || region;
 }
 
-function getContinent(region: string): string {
-  if (region.startsWith('eu-')) return 'Europe';
-  if (region.startsWith('us-')) return 'North America';
-  if (region.startsWith('ap-')) return 'Asia';
-  if (region.startsWith('sa-')) return 'South America';
-  if (region.startsWith('af-')) return 'Africa';
+function getContinent(input: string): string {
+  // Handle country names
+  const countryToContinent: Record<string, string> = {
+    'Poland': 'Europe',
+    'Germany': 'Europe',
+    'France': 'Europe',
+    'United Kingdom': 'Europe',
+    'UK': 'Europe',
+    'Spain': 'Europe',
+    'Italy': 'Europe',
+    'Netherlands': 'Europe',
+    'Belgium': 'Europe',
+    'Sweden': 'Europe',
+    'Norway': 'Europe',
+    'Denmark': 'Europe',
+    'Finland': 'Europe',
+    'United States': 'North America',
+    'US': 'North America',
+    'USA': 'North America',
+    'Canada': 'North America',
+    'Mexico': 'North America',
+    'Brazil': 'South America',
+    'Argentina': 'South America',
+    'Chile': 'South America',
+    'Japan': 'Asia',
+    'China': 'Asia',
+    'India': 'Asia',
+    'Singapore': 'Asia',
+    'South Korea': 'Asia',
+    'Australia': 'Oceania',
+    'New Zealand': 'Oceania',
+    'South Africa': 'Africa',
+    'Egypt': 'Africa',
+    'Nigeria': 'Africa',
+  };
+  
+  // Check if input is a country name
+  if (countryToContinent[input]) {
+    return countryToContinent[input];
+  }
+  
+  // Handle AWS-style regions
+  if (input.startsWith('eu-')) return 'Europe';
+  if (input.startsWith('us-')) return 'North America';
+  if (input.startsWith('ap-')) return 'Asia';
+  if (input.startsWith('sa-')) return 'South America';
+  if (input.startsWith('af-')) return 'Africa';
+  if (input.startsWith('au-')) return 'Oceania';
+  
   return 'Global';
 }
 
@@ -1233,8 +1306,49 @@ function getCity(region: string): string {
   return cities[region] || 'Unknown';
 }
 
-function getFlag(region: string): string {
-  const flags: Record<string, string> = {
+function getFlag(input: string): string {
+  // Handle country names
+  const countryFlags: Record<string, string> = {
+    'Poland': '🇵🇱',
+    'Germany': '🇩🇪',
+    'France': '🇫🇷',
+    'United Kingdom': '🇬🇧',
+    'UK': '🇬🇧',
+    'Spain': '🇪🇸',
+    'Italy': '🇮🇹',
+    'Netherlands': '🇳🇱',
+    'Belgium': '🇧🇪',
+    'Sweden': '🇸🇪',
+    'Norway': '🇳🇴',
+    'Denmark': '🇩🇰',
+    'Finland': '🇫🇮',
+    'United States': '🇺🇸',
+    'US': '🇺🇸',
+    'USA': '🇺🇸',
+    'Canada': '🇨🇦',
+    'Mexico': '🇲🇽',
+    'Brazil': '🇧🇷',
+    'Argentina': '🇦🇷',
+    'Chile': '🇨🇱',
+    'Japan': '🇯🇵',
+    'China': '🇨🇳',
+    'India': '🇮🇳',
+    'Singapore': '🇸🇬',
+    'South Korea': '🇰🇷',
+    'Australia': '🇦🇺',
+    'New Zealand': '🇳🇿',
+    'South Africa': '🇿🇦',
+    'Egypt': '🇪🇬',
+    'Nigeria': '🇳🇬',
+  };
+  
+  // Check if input is a country name
+  if (countryFlags[input]) {
+    return countryFlags[input];
+  }
+  
+  // Handle AWS-style regions
+  const regionFlags: Record<string, string> = {
     'eu-west-1': '🇩🇪',
     'eu-central-1': '🇵🇱',
     'us-east-1': '🇺🇸',
@@ -1242,7 +1356,12 @@ function getFlag(region: string): string {
     'ap-southeast-1': '🇸🇬',
     'auto': '🌍',
   };
-  return flags[region] || '🏳️';
+  
+  if (regionFlags[input]) {
+    return regionFlags[input];
+  }
+  
+  return '🌍';
 }
 
 export { workersApi };
