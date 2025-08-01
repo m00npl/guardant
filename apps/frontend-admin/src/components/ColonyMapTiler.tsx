@@ -63,24 +63,43 @@ export const ColonyMapTiler: React.FC = () => {
   const [colonies, setColonies] = useState<Colony[]>([])
   const [connections, setConnections] = useState<Connection[]>([])
   const [loading, setLoading] = useState(true)
+  const [mapReady, setMapReady] = useState(false)
 
   // Initialize map
   useEffect(() => {
-    if (map.current || !mapContainer.current) return
+    if (!mapContainer.current || map.current) return
 
-    map.current = L.map(mapContainer.current, {
-      center: [30, 0],
-      zoom: 2
-    })
+    try {
+      console.log('Initializing Leaflet map...')
+      
+      // Create map instance
+      const mapInstance = L.map(mapContainer.current).setView([30, 0], 2)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map.current)
+      // Add tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }).addTo(mapInstance)
+
+      map.current = mapInstance
+      setMapReady(true)
+      
+      console.log('Map initialized successfully')
+
+      // Force a resize after mount
+      setTimeout(() => {
+        mapInstance.invalidateSize()
+      }, 100)
+
+    } catch (error) {
+      console.error('Error initializing map:', error)
+    }
 
     return () => {
       if (map.current) {
         map.current.remove()
         map.current = null
+        setMapReady(false)
       }
     }
   }, [])
@@ -165,101 +184,121 @@ export const ColonyMapTiler: React.FC = () => {
 
   // Update markers when colonies change
   useEffect(() => {
-    if (!map.current) return
+    if (!map.current || !mapReady) return
 
     // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove())
+    markersRef.current.forEach(marker => {
+      try {
+        marker.remove()
+      } catch (e) {
+        console.error('Error removing marker:', e)
+      }
+    })
     markersRef.current = []
 
     // Add new markers
     colonies.forEach(colony => {
-      // Create pulsing effect for online colonies
-      if (colony.status === 'online') {
-        const pulseMarker1 = L.circleMarker(colony.coordinates, {
-          radius: 30,
-          fillColor: '#3b82f6',
-          fillOpacity: 0.1,
-          weight: 0,
-          className: 'animate-pulse'
+      try {
+        // Create pulsing effect for online colonies
+        if (colony.status === 'online') {
+          const pulseMarker1 = L.circleMarker(colony.coordinates, {
+            radius: 30,
+            fillColor: '#3b82f6',
+            fillOpacity: 0.1,
+            weight: 0,
+            className: 'animate-pulse'
+          }).addTo(map.current!)
+
+          const pulseMarker2 = L.circleMarker(colony.coordinates, {
+            radius: 20,
+            fillColor: '#3b82f6',
+            fillOpacity: 0.2,
+            weight: 0,
+            className: 'animate-pulse'
+          }).addTo(map.current!)
+
+          markersRef.current.push(pulseMarker1, pulseMarker2)
+        }
+
+        // Main marker
+        const marker = L.circleMarker(colony.coordinates, {
+          radius: 10,
+          fillColor: colony.status === 'online' ? '#3b82f6' : '#9ca3af',
+          fillOpacity: 1,
+          color: 'white',
+          weight: 3
         }).addTo(map.current!)
 
-        const pulseMarker2 = L.circleMarker(colony.coordinates, {
-          radius: 20,
-          fillColor: '#3b82f6',
-          fillOpacity: 0.2,
-          weight: 0,
-          className: 'animate-pulse'
-        }).addTo(map.current!)
-
-        markersRef.current.push(pulseMarker1, pulseMarker2)
-      }
-
-      // Main marker
-      const marker = L.circleMarker(colony.coordinates, {
-        radius: 10,
-        fillColor: colony.status === 'online' ? '#3b82f6' : '#9ca3af',
-        fillOpacity: 1,
-        color: 'white',
-        weight: 3
-      }).addTo(map.current!)
-
-      // Popup
-      marker.bindPopup(`
-        <div style="text-align: center; padding: 8px;">
-          <h3 style="font-weight: 600; font-size: 18px; margin-bottom: 4px;">${colony.city}</h3>
-          <p style="color: #666; font-size: 14px; margin-bottom: 8px;">${colony.country}</p>
-          <div style="margin-bottom: 8px;">
-            <span style="
-              display: inline-flex;
-              align-items: center;
-              padding: 4px 8px;
-              border-radius: 9999px;
-              font-size: 12px;
-              font-weight: 500;
-              ${colony.status === 'online' 
-                ? 'background-color: #dcfce7; color: #166534;' 
-                : 'background-color: #f3f4f6; color: #374151;'}
-            ">
-              ${colony.status === 'online' ? '🟢 Online' : '⚫ Offline'}
-            </span>
+        // Popup
+        marker.bindPopup(`
+          <div style="text-align: center; padding: 8px; min-width: 150px;">
+            <h3 style="font-weight: 600; font-size: 18px; margin-bottom: 4px;">${colony.city}</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">${colony.country}</p>
+            <div style="margin-bottom: 8px;">
+              <span style="
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 8px;
+                border-radius: 9999px;
+                font-size: 12px;
+                font-weight: 500;
+                ${colony.status === 'online' 
+                  ? 'background-color: #dcfce7; color: #166534;' 
+                  : 'background-color: #f3f4f6; color: #374151;'}
+              ">
+                ${colony.status === 'online' ? '🟢 Online' : '⚫ Offline'}
+              </span>
+            </div>
+            ${colony.activeWorkers > 0 ? `
+              <p style="font-size: 14px;">
+                <strong>${colony.activeWorkers}</strong> active workers
+              </p>
+            ` : ''}
           </div>
-          ${colony.activeWorkers > 0 ? `
-            <p style="font-size: 14px;">
-              <strong>${colony.activeWorkers}</strong> active workers
-            </p>
-          ` : ''}
-        </div>
-      `)
+        `)
 
-      markersRef.current.push(marker)
+        markersRef.current.push(marker)
+      } catch (error) {
+        console.error('Error adding marker:', error)
+      }
     })
-  }, [colonies])
+  }, [colonies, mapReady])
 
   // Update connections
   useEffect(() => {
-    if (!map.current) return
+    if (!map.current || !mapReady) return
 
     // Clear old connections
-    connectionsRef.current.forEach(line => line.remove())
+    connectionsRef.current.forEach(line => {
+      try {
+        line.remove()
+      } catch (e) {
+        console.error('Error removing connection:', e)
+      }
+    })
     connectionsRef.current = []
 
     // Add new connections
     connections.forEach(connection => {
-      const opacity = Math.max(0.1, 1 - (Date.now() - connection.timestamp) / 3500)
-      
-      const polyline = L.polyline(
-        [connection.from.coordinates, connection.to.coordinates],
-        {
-          color: '#3b82f6',
-          weight: 2,
-          opacity: opacity,
-          dashArray: '5, 10'
-        }
-      ).addTo(map.current!)
+      try {
+        const opacity = Math.max(0.1, 1 - (Date.now() - connection.timestamp) / 3500)
+        
+        const polyline = L.polyline(
+          [connection.from.coordinates, connection.to.coordinates],
+          {
+            color: '#3b82f6',
+            weight: 2,
+            opacity: opacity,
+            dashArray: '5, 10'
+          }
+        ).addTo(map.current!)
 
-      connectionsRef.current.push(polyline)
+        connectionsRef.current.push(polyline)
+      } catch (error) {
+        console.error('Error adding connection:', error)
+      }
     })
-  }, [connections])
+  }, [connections, mapReady])
 
   const simulateConnections = () => {
     if (colonies.length < 2) return
@@ -300,10 +339,18 @@ export const ColonyMapTiler: React.FC = () => {
 
   return (
     <div className="relative w-full">
-      <div ref={mapContainer} className="w-full h-[600px] rounded-lg overflow-hidden shadow-lg" />
+      <div 
+        ref={mapContainer} 
+        className="w-full h-[600px] rounded-lg overflow-hidden shadow-lg"
+        style={{ 
+          background: '#f0f9ff',
+          position: 'relative',
+          zIndex: 1
+        }}
+      />
       
       {/* Legend */}
-      <div className="absolute top-4 left-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 z-[1000] pointer-events-none">
+      <div className="absolute top-4 left-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 pointer-events-none" style={{ zIndex: 1000 }}>
         <h4 className="text-sm font-semibold text-gray-900 mb-2">Colony Status</h4>
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
@@ -322,7 +369,7 @@ export const ColonyMapTiler: React.FC = () => {
       </div>
 
       {/* Info overlay */}
-      <div className="absolute bottom-4 right-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 z-[1000] pointer-events-none">
+      <div className="absolute bottom-4 right-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 pointer-events-none" style={{ zIndex: 1000 }}>
         <div className="text-sm text-gray-700">
           <div className="flex items-center space-x-2 mb-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -363,6 +410,11 @@ export const ColonyMapTiler: React.FC = () => {
         .leaflet-popup-content {
           margin: 0;
           width: auto !important;
+        }
+        .leaflet-control-attribution {
+          background: rgba(255, 255, 255, 0.8);
+          padding: 2px 5px;
+          font-size: 10px;
         }
       `}</style>
     </div>
