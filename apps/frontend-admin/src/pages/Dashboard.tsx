@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '../stores/authStore'
 import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
+import { ColonyMap } from '../components/ColonyMap'
 
 interface DashboardStats {
   totalWatchers: number
@@ -346,6 +347,22 @@ export const Dashboard: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Colony Map */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            🌍 Global Colony Network
+          </h3>
+          <button
+            onClick={() => navigate('/regions')}
+            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            View Details →
+          </button>
+        </div>
+        <ColonyMap />
       </div>
 
       {/* Quick Actions */}

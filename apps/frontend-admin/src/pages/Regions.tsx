@@ -13,6 +13,7 @@ import {
   TrendingUp,
   RefreshCw
 } from 'lucide-react'
+import { ColonyMap } from '../components/ColonyMap'
 
 interface Colony {
   id: string
@@ -388,20 +389,12 @@ export const Regions: React.FC = () => {
         </div>
       )}
 
-      {/* Network Map Placeholder */}
+      {/* Interactive Colony Map */}
       <div className="card p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           🌍 Global Colony Map
         </h3>
-        <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
-          <div className="text-center">
-            <Globe className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500">Interactive map coming soon</p>
-            <p className="text-sm text-gray-400">
-              Visualize your WorkerAnt colonies across the globe
-            </p>
-          </div>
-        </div>
+        <ColonyMap />
       </div>
     </div>
   )
