@@ -1165,11 +1165,19 @@ workersApi.get('/regions', async (c) => {
       if (data.location && data.location.city) {
         city = data.location.city;
         country = data.location.country || 'Unknown';
-        continent = data.location.continent || getContinent(data.location.country || '');
-        flag = getFlag(data.location.country || '');
         
-        // Generate a region ID based on continent and country
-        regionId = generateRegionId(continent, country);
+        // Convert country code to full name if needed
+        if (country.length === 2 || country.length === 3) {
+          const originalCountryCode = country;
+          country = getCountryFullName(country);
+          continent = data.location.continent || getContinent(originalCountryCode);
+          flag = getFlag(originalCountryCode);
+          regionId = generateRegionId(continent, originalCountryCode);
+        } else {
+          continent = data.location.continent || getContinent(country);
+          flag = getFlag(country);
+          regionId = generateRegionId(continent, country);
+        }
       } else if (locationKey.includes(',')) {
         // Parse from "City, Country" format
         const parts = locationKey.split(',').map(s => s.trim());
