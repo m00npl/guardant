@@ -100,7 +100,7 @@ export class HeartbeatVerifier {
       }
 
       // 4. Verify location consistency
-      if (lastState && lastState.location) {
+      if (lastState && lastState.location && heartbeat.location) {
         // Workers shouldn't change location frequently
         if (heartbeat.location.region !== lastState.location.region) {
           const timeSinceLastChange = heartbeat.timestamp - lastState.timestamp;

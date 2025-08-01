@@ -1071,10 +1071,10 @@ workersApi.get('/registrations/approved', async (c) => {
         return {
           workerId,
           ...registration,
-          lastHeartbeat: heartbeat?.lastSeen,
+          lastHeartbeat: heartbeat?.lastSeen ? new Date(heartbeat.lastSeen).toISOString() : null,
           version: heartbeat?.version,
           points: heartbeat?.totalPoints || 0,
-          region: heartbeat?.location?.region || registration.location?.region || 'Unknown',
+          region: heartbeat?.region || heartbeat?.location?.region || registration.location?.region || 'Unknown',
           city: heartbeat?.location?.city || registration.location?.city || 'Unknown',
         };
       })
