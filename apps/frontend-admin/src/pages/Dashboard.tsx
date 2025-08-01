@@ -13,7 +13,7 @@ import {
 import { useAuthStore } from '../stores/authStore'
 import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
-import { ColonyMap } from '../components/ColonyMap'
+import { ColonyWorldMap } from '../components/ColonyWorldMap'
 
 interface DashboardStats {
   totalWatchers: number
@@ -362,7 +362,7 @@ export const Dashboard: React.FC = () => {
             View Details →
           </button>
         </div>
-        <ColonyMap />
+        <ColonyWorldMap />
       </div>
 
       {/* Quick Actions */}
