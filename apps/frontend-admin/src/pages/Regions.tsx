@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { ColonyWorldMap } from '../components/ColonyWorldMap'
+import { LatencyBadge } from '../components/LatencyDisplay'
 
 interface Colony {
   id: string
@@ -303,8 +304,8 @@ export const Regions: React.FC = () => {
                     <Clock className="h-4 w-4 mr-1" />
                     Avg Latency
                   </div>
-                  <div className="text-lg font-semibold text-gray-900">
-                    {colony.avgLatency}ms
+                  <div className="mt-1">
+                    <LatencyBadge latency={colony.avgLatency} />
                   </div>
                 </div>
                 <div>

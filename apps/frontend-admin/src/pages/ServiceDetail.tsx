@@ -26,6 +26,7 @@ import {
 import { useAuthStore } from '../stores/authStore'
 import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
+import { LatencyBadge } from '../components/LatencyDisplay'
 
 interface ServiceDetail {
   id: string
@@ -333,10 +334,18 @@ export const ServiceDetail: React.FC = () => {
             <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
             <Clock className="h-5 w-5 text-blue-600" />
           </div>
-          <p className="text-2xl font-bold">{service.statistics.avgResponseTime}ms</p>
-          <p className="text-sm text-gray-500 mt-1">
-            Current: {service.lastCheck?.responseTime || '--'}ms
-          </p>
+          <div className="space-y-2">
+            <div>
+              <p className="text-sm text-gray-500">Average</p>
+              <p className="text-2xl font-bold">{service.statistics.avgResponseTime}ms</p>
+            </div>
+            {service.lastCheck?.responseTime && (
+              <div>
+                <p className="text-sm text-gray-500">Current</p>
+                <LatencyBadge latency={service.lastCheck.responseTime} />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="card p-6">
