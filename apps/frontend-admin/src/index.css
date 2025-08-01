@@ -37,6 +37,15 @@
     @apply bg-white rounded-xl border border-gray-200 shadow-sm;
   }
   
+  /* Custom slider styling */
+  .slider::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 bg-primary-600 rounded-full cursor-pointer shadow-md hover:bg-primary-700 transition-colors;
+  }
+  
+  .slider::-moz-range-thumb {
+    @apply w-4 h-4 bg-primary-600 rounded-full cursor-pointer shadow-md hover:bg-primary-700 transition-colors border-0;
+  }
+  
   .status-up {
     @apply bg-success-50 text-success-600 border-success-200;
   }

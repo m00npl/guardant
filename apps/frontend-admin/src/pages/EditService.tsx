@@ -421,26 +421,46 @@ export const EditService: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Check Interval
               </label>
-              <div className="flex items-center space-x-4">
-                <input
-                  type="range"
-                  min={minInterval}
-                  max="3600"
-                  step={minInterval === 900 ? 300 : 30}
-                  className="flex-1"
-                  value={formData.interval}
-                  onChange={(e) => setFormData({ ...formData, interval: parseInt(e.target.value) })}
-                />
-                <div className="flex items-center space-x-2 min-w-0">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-900">
-                    {formData.interval < 60 ? `${formData.interval}s` : `${Math.floor(formData.interval / 60)}m`}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-gray-600">
+                    How often should we check your service?
                   </span>
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-4 w-4 text-primary-600" />
+                    <span className="text-lg font-semibold text-primary-600">
+                      {formData.interval < 60 ? `${formData.interval}s` : `${Math.floor(formData.interval / 60)}m`}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>{minInterval === 900 ? '15m' : '30s'} (Frequent)</span>
-                <span>1h (Rarely)</span>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min={minInterval}
+                    max="3600"
+                    step={minInterval === 900 ? 300 : 30}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((formData.interval - minInterval) / (3600 - minInterval)) * 100}%, #e5e7eb ${((formData.interval - minInterval) / (3600 - minInterval)) * 100}%, #e5e7eb 100%)`
+                    }}
+                    value={formData.interval}
+                    onChange={(e) => setFormData({ ...formData, interval: parseInt(e.target.value) })}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>{minInterval === 900 ? '15m' : '30s'}</span>
+                    <span>5m</span>
+                    <span>15m</span>
+                    <span>30m</span>
+                    <span>1h</span>
+                  </div>
+                </div>
+                {nest?.subscription.tier === 'free' && (
+                  <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded">
+                    <p className="text-xs text-amber-700">
+                      ⚡ Upgrade to Pro for intervals as low as 30 seconds
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
