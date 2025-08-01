@@ -17,7 +17,6 @@ RUN bun install
 # Copy source files
 COPY frontends/admin/index.html ./
 COPY frontends/admin/src ./src
-COPY frontends/admin/public ./public || true
 
 # Build the application
 RUN bun run build
