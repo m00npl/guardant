@@ -13,7 +13,7 @@ import {
 import { useAuthStore } from '../stores/authStore'
 import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
-import { ColonyMapTiler } from '../components/ColonyMapTiler'
+import { ColonyMapbox } from '../components/ColonyMapbox'
 import { LatencyDisplay } from '../components/LatencyDisplay'
 
 interface DashboardStats {
@@ -382,7 +382,7 @@ export const Dashboard: React.FC = () => {
             View Details →
           </button>
         </div>
-        <ColonyMapTiler />
+        <ColonyMapbox />
       </div>
 
       {/* Quick Actions */}
