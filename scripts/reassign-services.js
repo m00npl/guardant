@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 import readline from 'readline';
 
 const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
+  host: process.env.REDIS_HOST || 'guardant-redis',
   port: parseInt(process.env.REDIS_PORT || '6379'),
 });
 
