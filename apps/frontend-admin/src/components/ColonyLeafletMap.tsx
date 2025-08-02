@@ -74,6 +74,8 @@ export const ColonyLeafletMap: React.FC = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
+  console.log("ColonyLeafletMap component rendering");
+
   // Check if Leaflet is available immediately
   useEffect(() => {
     console.log("Component mounted, checking Leaflet availability...");
@@ -541,7 +543,22 @@ export const ColonyLeafletMap: React.FC = () => {
           zIndex: 1,
         }}
         id="map-container"
-      />
+      >
+        {/* Debug info */}
+        <div
+          style={{
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            background: "rgba(255,255,255,0.8)",
+            padding: "5px",
+            fontSize: "12px",
+            zIndex: 1000,
+          }}
+        >
+          Map Container Ready
+        </div>
+      </div>
 
       {/* Legend */}
       <div className="absolute top-4 left-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 z-[1000]">
