@@ -100,8 +100,9 @@ fi
 # Service mapping
 declare -A SERVICE_MAP=(
     ["admin-frontend"]="apps/frontend-admin"
+    ["status-frontend"]="apps/frontend-status"
     ["admin-api"]="services/api-admin"
-    ["public-api"]="services/api-status"
+    ["public-api"]="services/api-public"
     ["monitoring-scheduler"]="services/scheduler"
     ["redis"]="redis"
     ["nginx-proxy"]="nginx"
@@ -141,12 +142,22 @@ else
             add_service_with_reason "admin-frontend" "$file"
         fi
         
+        # Frontend Status
+        if [[ $file =~ ^apps/frontend-status/ ]]; then
+            add_service_with_reason "status-frontend" "$file"
+        fi
+        
         # Admin API
         if [[ $file =~ ^services/api-admin/ ]] || [[ $file =~ ^packages/auth-system/ ]]; then
             add_service_with_reason "admin-api" "$file"
         fi
         
-        # Status API
+        # Public API (includes status routes)
+        if [[ $file =~ ^services/api-public/ ]]; then
+            add_service_with_reason "public-api" "$file"
+        fi
+        
+        # Status API (legacy)
         if [[ $file =~ ^services/api-status/ ]]; then
             add_service_with_reason "public-api" "$file"
         fi

@@ -51,12 +51,22 @@ while IFS= read -r file; do
         add_service "admin-frontend"
     fi
     
+    # Frontend Status
+    if [[ $file == apps/frontend-status/* ]]; then
+        add_service "status-frontend"
+    fi
+    
     # Admin API
     if [[ $file == services/api-admin/* ]] || [[ $file == packages/auth-system/* ]]; then
         add_service "admin-api"
     fi
     
-    # Status API
+    # Public API (includes status routes)
+    if [[ $file == services/api-public/* ]]; then
+        add_service "public-api"
+    fi
+    
+    # Status API (legacy)
     if [[ $file == services/api-status/* ]]; then
         add_service "public-api"
     fi

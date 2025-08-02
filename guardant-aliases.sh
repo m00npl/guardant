@@ -32,9 +32,11 @@ alias guardant-rebuild="cd $GUARDANT_DIR && ./smart-rebuild.sh"
 # Quick access to specific service logs
 alias logs-admin='docker compose logs -f guardant-admin-api'
 alias logs-frontend='docker compose logs -f guardant-admin-frontend'
+alias logs-status='docker compose logs -f guardant-status-frontend'
 alias logs-scheduler='docker compose logs -f guardant-scheduler'
 alias logs-redis='docker compose logs -f guardant-redis'
-alias logs-nginx='docker compose logs -f guardant-nginx'
+alias logs-nginx='docker compose logs -f guardant-nginx-proxy'
+alias logs-public='docker compose logs -f guardant-public-api'
 
 # Helpful info
 alias guardant-help='echo "
@@ -60,8 +62,10 @@ GuardAnt Specific:
   
 Service Logs:
   logs-admin      - Admin API logs
-  logs-frontend   - Frontend logs
+  logs-frontend   - Admin Frontend logs
+  logs-status     - Status Frontend logs
+  logs-public     - Public API logs
   logs-scheduler  - Scheduler logs
   logs-redis      - Redis logs
-  logs-nginx      - Nginx logs
+  logs-nginx      - Nginx proxy logs
 "'
