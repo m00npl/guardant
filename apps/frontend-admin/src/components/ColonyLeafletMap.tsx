@@ -74,6 +74,19 @@ export const ColonyLeafletMap: React.FC = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
+  // Check if Leaflet is available immediately
+  useEffect(() => {
+    console.log("Component mounted, checking Leaflet availability...");
+    console.log("typeof L:", typeof L);
+    console.log("L object:", L);
+
+    if (typeof L === "undefined") {
+      console.error("Leaflet is not available on component mount");
+    } else {
+      console.log("Leaflet is available on component mount");
+    }
+  }, []);
+
   useEffect(() => {
     fetchColonies();
     const interval = setInterval(() => {
@@ -85,9 +98,16 @@ export const ColonyLeafletMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
+    console.log("Map initialization effect triggered");
+    console.log("Container ref:", mapContainerRef.current);
+    console.log("Map ref:", mapRef.current);
+
     // Wait a bit for the container to be properly rendered
     const timer = setTimeout(() => {
-      if (!mapContainerRef.current) return;
+      if (!mapContainerRef.current) {
+        console.error("Container ref is null after timeout");
+        return;
+      }
 
       // Check if Leaflet is available
       if (typeof L === "undefined") {
