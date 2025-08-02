@@ -176,10 +176,27 @@ export const ColonyLeafletMap: React.FC = () => {
       return;
     }
 
-    // Wait a bit for the container to be properly rendered
-    const timer = setTimeout(() => {
+    // Wait for container to be ready
+    const checkContainer = () => {
       if (!mapContainerRef.current) {
-        console.error("Container ref is null after timeout");
+        console.log("Container still not ready, retrying...");
+        setTimeout(checkContainer, 50);
+        return;
+      }
+
+      console.log("Container is ready:", mapContainerRef.current);
+      console.log("Container dimensions:", {
+        width: mapContainerRef.current.offsetWidth,
+        height: mapContainerRef.current.offsetHeight,
+      });
+
+      // Check if container has proper dimensions
+      if (
+        mapContainerRef.current.offsetWidth === 0 ||
+        mapContainerRef.current.offsetHeight === 0
+      ) {
+        console.log("Container has zero dimensions, retrying...");
+        setTimeout(checkContainer, 50);
         return;
       }
 
@@ -191,19 +208,6 @@ export const ColonyLeafletMap: React.FC = () => {
 
       console.log("Leaflet is available:", typeof L);
       console.log("Container element:", mapContainerRef.current);
-      console.log("Container dimensions:", {
-        width: mapContainerRef.current.offsetWidth,
-        height: mapContainerRef.current.offsetHeight,
-      });
-
-      // Check if container has proper dimensions
-      if (
-        mapContainerRef.current.offsetWidth === 0 ||
-        mapContainerRef.current.offsetHeight === 0
-      ) {
-        console.error("Container has zero dimensions, cannot initialize map");
-        return;
-      }
 
       try {
         console.log("Initializing Leaflet map...");
@@ -247,10 +251,12 @@ export const ColonyLeafletMap: React.FC = () => {
         console.error("Error details:", error.message);
         console.error("Error stack:", error.stack);
       }
-    }, 100);
+    };
+
+    // Start checking for container
+    checkContainer();
 
     return () => {
-      clearTimeout(timer);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
