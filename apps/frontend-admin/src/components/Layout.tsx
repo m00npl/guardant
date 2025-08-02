@@ -13,7 +13,8 @@ import {
   UserPlus, // Team icon
   Shield, // Platform Admin icon
   Building2, // Organizations icon
-  DollarSign // Revenue icon
+  DollarSign, // Revenue icon
+  Map // Map icon
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
@@ -69,6 +70,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { name: 'Ant Hill', href: '/dashboard', icon: BarChart3 }, // Dashboard -> Ant Hill
       { name: 'Watchers', href: '/services', icon: Globe }, // Services -> Watchers (ants watching services)
       { name: 'Colonies', href: '/regions', icon: MapPin }, // Regions -> Colonies (ant colonies in different regions)
+      { name: 'Map', href: '/map', icon: Map }, // Global colony map
       { name: 'Team', href: '/team', icon: UserPlus }, // Team management
       { name: 'Widget', href: '/widget', icon: Code }, // Embeddable Widget
       { name: 'Queen\'s Den', href: '/settings', icon: Settings }, // Settings -> Queen's Den
@@ -76,7 +78,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     
     // Add Worker Ants menu for admins and owners
     if (user?.role === 'admin' || user?.role === 'owner') {
-      navigation.splice(3, 0, { name: 'Worker Ants', href: '/workers', icon: Users })
+      navigation.splice(4, 0, { name: 'Worker Ants', href: '/workers', icon: Users })
     }
     
     // Add Monitoring page for owners

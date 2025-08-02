@@ -18,6 +18,7 @@ import { Register } from './pages/Register'
 import { useAuthStore } from './stores/authStore'
 import { Monitoring } from './pages/Monitoring'
 import { PlatformAdminPage } from './pages/PlatformAdminPage'
+import { Map } from './pages/Map'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -53,6 +54,7 @@ function App() {
           <Route path="/services/:id" element={<ServiceDetail />} />
           <Route path="/services/:id/edit" element={<EditService />} />
           <Route path="/regions" element={<Regions />} />
+          <Route path="/map" element={<Map />} />
           <Route path="/workers" element={<Workers />} />
           <Route path="/team" element={<Team />} />
           <Route path="/api-keys" element={<ApiKeys />} />
