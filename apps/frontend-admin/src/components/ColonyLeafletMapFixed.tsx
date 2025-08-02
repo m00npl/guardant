@@ -32,6 +32,7 @@ interface Connection {
 
 const cityCoordinates: { [key: string]: [number, number] } = {
   Warsaw: [52.2297, 21.0122],
+  Kraków: [50.0647, 19.9450], // Fixed Kraków coordinates
   Frankfurt: [50.1109, 8.6821],
   London: [51.5074, -0.1278],
   Paris: [48.8566, 2.3522],
@@ -184,18 +185,26 @@ export const ColonyLeafletMapFixed: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("Fetched regions:", data.regions);
+        
         const mappedColonies: Colony[] = data.regions.map((region: any) => {
           let city = "Unknown";
           if (region.city) {
             city = region.city;
           } else if (region.name) {
+            // Extract city from region name like "Europe (Frankfurt)"
             const match = region.name.match(/\(([^)]+)\)/);
             if (match) {
               city = match[1];
             }
           }
 
+          console.log(`Mapping region: ${region.name}, city: ${city}`);
           const coordinates = cityCoordinates[city] || [0, 0];
+          
+          if (coordinates[0] === 0 && coordinates[1] === 0) {
+            console.warn(`No coordinates found for city: ${city}`);
+          }
 
           return {
             id: region.id || Math.random().toString(),
@@ -207,40 +216,71 @@ export const ColonyLeafletMapFixed: React.FC = () => {
             status: region.available ? "online" : "offline",
           };
         });
+        
+        console.log("Mapped colonies:", mappedColonies);
         setColonies(mappedColonies);
       }
     } catch (error) {
       console.error("Failed to fetch colonies:", error);
       // Use fallback data
-      setColonies([
+      const fallbackColonies = [
         {
           id: "1",
           city: "Warsaw",
           country: "Poland",
           continent: "Europe",
-          coordinates: [52.2297, 21.0122],
+          coordinates: [52.2297, 21.0122] as [number, number],
           activeWorkers: 5,
-          status: "online",
+          status: "online" as const,
         },
         {
           id: "2",
-          city: "Frankfurt",
-          country: "Germany",
+          city: "Kraków",
+          country: "Poland",
           continent: "Europe",
-          coordinates: [50.1109, 8.6821],
+          coordinates: [50.0647, 19.9450] as [number, number],
           activeWorkers: 3,
-          status: "online",
+          status: "online" as const,
         },
         {
           id: "3",
+          city: "Frankfurt",
+          country: "Germany",
+          continent: "Europe",
+          coordinates: [50.1109, 8.6821] as [number, number],
+          activeWorkers: 4,
+          status: "online" as const,
+        },
+        {
+          id: "4",
           city: "New York",
           country: "USA",
           continent: "North America",
-          coordinates: [40.7128, -74.006],
+          coordinates: [40.7128, -74.006] as [number, number],
           activeWorkers: 8,
-          status: "online",
+          status: "online" as const,
         },
-      ]);
+        {
+          id: "5",
+          city: "Tokyo",
+          country: "Japan",
+          continent: "Asia",
+          coordinates: [35.6762, 139.6503] as [number, number],
+          activeWorkers: 6,
+          status: "online" as const,
+        },
+        {
+          id: "6",
+          city: "Sydney",
+          country: "Australia",
+          continent: "Australia",
+          coordinates: [-33.8688, 151.2093] as [number, number],
+          activeWorkers: 2,
+          status: "offline" as const,
+        },
+      ];
+      console.log("Using fallback colonies:", fallbackColonies);
+      setColonies(fallbackColonies);
     } finally {
       setLoading(false);
     }
