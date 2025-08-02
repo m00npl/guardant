@@ -169,6 +169,10 @@ export const ColonyLeafletMap: React.FC = () => {
     console.log("Container ref:", mapContainerRef.current);
     console.log("Map ref:", mapRef.current);
 
+    // Check if DOM element exists
+    const domElement = document.getElementById("map-container");
+    console.log("DOM element by ID:", domElement);
+
     if (!mapContainerRef.current || mapRef.current) {
       console.log(
         "Map initialization skipped - container not ready or map already exists"
@@ -180,6 +184,11 @@ export const ColonyLeafletMap: React.FC = () => {
     const checkContainer = () => {
       if (!mapContainerRef.current) {
         console.log("Container still not ready, retrying...");
+        console.log("Container ref current:", mapContainerRef.current);
+        console.log(
+          "DOM element by ID:",
+          document.getElementById("map-container")
+        );
         setTimeout(checkContainer, 50);
         return;
       }
@@ -531,6 +540,7 @@ export const ColonyLeafletMap: React.FC = () => {
           position: "relative",
           zIndex: 1,
         }}
+        id="map-container"
       />
 
       {/* Legend */}
