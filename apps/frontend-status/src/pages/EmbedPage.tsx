@@ -114,7 +114,7 @@ export const EmbedPage: React.FC = () => {
   if (error) {
     return (
       <div className="embed-container">
-        <ErrorMessage message={error} />
+        <ErrorMessage error={error} />
       </div>
     );
   }
@@ -122,7 +122,7 @@ export const EmbedPage: React.FC = () => {
   if (!filteredData) {
     return (
       <div className="embed-container">
-        <ErrorMessage message="No status data available" />
+        <ErrorMessage error="No status data available" />
       </div>
     );
   }
@@ -193,10 +193,8 @@ export const EmbedPage: React.FC = () => {
     <div className="embed-container">
       <div className="embed-header">
         <StatusHeader 
-          nest={filteredData.nest}
-          overallStatus={overallStatus}
+          data={filteredData}
           lastUpdated={filteredData.lastUpdated}
-          compact={true}
         />
       </div>
       
@@ -204,8 +202,7 @@ export const EmbedPage: React.FC = () => {
         {filteredData.services.map((service) => (
           <ServiceCard 
             key={service.id} 
-            service={service} 
-            compact={compact}
+            service={service}
           />
         ))}
       </div>
