@@ -85,43 +85,63 @@ export const ColonyLeafletMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    try {
-      console.log("Initializing Leaflet map...");
+    // Wait a bit for the container to be properly rendered
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current) return;
 
-      // Create map instance
-      const mapInstance = L.map(mapContainerRef.current).setView([30, 0], 2);
+      // Check if Leaflet is available
+      if (typeof L === "undefined") {
+        console.error("Leaflet is not available");
+        return;
+      }
 
-      // Add tile layer
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(mapInstance);
+      try {
+        console.log("Initializing Leaflet map...");
+        console.log("Container dimensions:", {
+          width: mapContainerRef.current.offsetWidth,
+          height: mapContainerRef.current.offsetHeight,
+        });
 
-      mapRef.current = mapInstance;
+        // Create map instance
+        const mapInstance = L.map(mapContainerRef.current).setView([30, 0], 2);
 
-      console.log("Map initialized successfully");
+        // Add tile layer
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19,
+        }).addTo(mapInstance);
 
-      // Force a resize after mount and when tiles load
-      setTimeout(() => {
-        mapInstance.invalidateSize();
-        console.log("Map size invalidated");
-      }, 100);
+        mapRef.current = mapInstance;
 
-      // Also invalidate size when tiles start loading
-      mapInstance.on("loading", () => {
-        console.log("Map tiles loading...");
-      });
+        console.log("Map initialized successfully");
 
-      mapInstance.on("load", () => {
-        console.log("Map tiles loaded");
-        mapInstance.invalidateSize();
-      });
-    } catch (error) {
-      console.error("Error initializing map:", error);
-    }
+        // Force a resize after mount and when tiles load
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.invalidateSize();
+            console.log("Map size invalidated");
+          }
+        }, 100);
+
+        // Also invalidate size when tiles start loading
+        mapInstance.on("loading", () => {
+          console.log("Map tiles loading...");
+        });
+
+        mapInstance.on("load", () => {
+          console.log("Map tiles loaded");
+          if (mapRef.current) {
+            mapRef.current.invalidateSize();
+          }
+        });
+      } catch (error) {
+        console.error("Error initializing map:", error);
+      }
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -447,6 +467,8 @@ export const ColonyLeafletMap: React.FC = () => {
         style={{
           background: "#f0f9ff",
           minHeight: "600px",
+          height: "600px",
+          width: "100%",
           position: "relative",
           zIndex: 1,
         }}
@@ -511,6 +533,7 @@ export const ColonyLeafletMap: React.FC = () => {
           font-family: inherit;
           height: 100% !important;
           width: 100% !important;
+          min-height: 600px !important;
         }
         .leaflet-popup-content-wrapper {
           border-radius: 8px;
