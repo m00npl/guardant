@@ -95,12 +95,86 @@ export const ColonyLeafletMap: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Update markers when colonies change
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    console.log("Colonies changed effect triggered");
+    console.log("Colonies count:", colonies.length);
+    console.log("Map ref:", mapRef.current);
 
+    if (!mapRef.current || colonies.length === 0) {
+      console.log("Map not ready or no colonies:", {
+        mapReady: !!mapRef.current,
+        coloniesCount: colonies.length,
+      });
+      return;
+    }
+
+    console.log("Updating markers for", colonies.length, "colonies");
+
+    // Clear existing markers
+    mapRef.current.eachLayer((layer) => {
+      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+        mapRef.current?.removeLayer(layer);
+      }
+    });
+
+    // Add colony markers
+    colonies.forEach((colony) => {
+      console.log("Adding marker for", colony.city, "at", colony.coordinates);
+      const marker = L.marker(colony.coordinates).addTo(mapRef.current!);
+
+      const popupContent = `
+        <div class="text-center p-2">
+          <h3 class="font-semibold text-lg mb-1">${colony.city}</h3>
+          <p class="text-sm text-gray-600 mb-2">${colony.country}</p>
+          <div class="mb-2">
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              colony.status === "online"
+                ? "bg-green-100 text-green-800"
+                : "bg-gray-100 text-gray-800"
+            }">
+              ${colony.status === "online" ? "🟢 Online" : "⚫ Offline"}
+            </span>
+          </div>
+          ${colony.activeWorkers > 0 ? `<p class="text-sm"><strong>${colony.activeWorkers}</strong> active workers</p>` : ""}
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+    });
+
+    // Add connections
+    connections.forEach((connection) => {
+      const opacity = Math.max(
+        0.1,
+        1 - (Date.now() - connection.timestamp) / 3500
+      );
+      const polyline = L.polyline(
+        [connection.from.coordinates, connection.to.coordinates],
+        {
+          color: "#3b82f6",
+          weight: 2,
+          opacity: opacity,
+          dashArray: "5, 10",
+        }
+      ).addTo(mapRef.current!);
+    });
+
+    console.log("Markers updated successfully");
+  }, [colonies, connections]);
+
+  // Map initialization effect
+  useEffect(() => {
     console.log("Map initialization effect triggered");
     console.log("Container ref:", mapContainerRef.current);
     console.log("Map ref:", mapRef.current);
+
+    if (!mapContainerRef.current || mapRef.current) {
+      console.log(
+        "Map initialization skipped - container not ready or map already exists"
+      );
+      return;
+    }
 
     // Wait a bit for the container to be properly rendered
     const timer = setTimeout(() => {
@@ -183,70 +257,6 @@ export const ColonyLeafletMap: React.FC = () => {
       }
     };
   }, []);
-
-  // Update markers when colonies change
-  useEffect(() => {
-    if (!mapRef.current || colonies.length === 0) {
-      console.log("Map not ready or no colonies:", {
-        mapReady: !!mapRef.current,
-        coloniesCount: colonies.length,
-      });
-      return;
-    }
-
-    console.log("Updating markers for", colonies.length, "colonies");
-
-    // Clear existing markers
-    mapRef.current.eachLayer((layer) => {
-      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
-        mapRef.current?.removeLayer(layer);
-      }
-    });
-
-    // Add colony markers
-    colonies.forEach((colony) => {
-      console.log("Adding marker for", colony.city, "at", colony.coordinates);
-      const marker = L.marker(colony.coordinates).addTo(mapRef.current!);
-
-      const popupContent = `
-        <div class="text-center p-2">
-          <h3 class="font-semibold text-lg mb-1">${colony.city}</h3>
-          <p class="text-sm text-gray-600 mb-2">${colony.country}</p>
-          <div class="mb-2">
-            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-              colony.status === "online"
-                ? "bg-green-100 text-green-800"
-                : "bg-gray-100 text-gray-800"
-            }">
-              ${colony.status === "online" ? "🟢 Online" : "⚫ Offline"}
-            </span>
-          </div>
-          ${colony.activeWorkers > 0 ? `<p class="text-sm"><strong>${colony.activeWorkers}</strong> active workers</p>` : ""}
-        </div>
-      `;
-
-      marker.bindPopup(popupContent);
-    });
-
-    // Add connections
-    connections.forEach((connection) => {
-      const opacity = Math.max(
-        0.1,
-        1 - (Date.now() - connection.timestamp) / 3500
-      );
-      const polyline = L.polyline(
-        [connection.from.coordinates, connection.to.coordinates],
-        {
-          color: "#3b82f6",
-          weight: 2,
-          opacity: opacity,
-          dashArray: "5, 10",
-        }
-      ).addTo(mapRef.current!);
-    });
-
-    console.log("Markers updated successfully");
-  }, [colonies, connections]);
 
   const fetchColonies = async () => {
     try {
