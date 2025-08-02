@@ -95,12 +95,24 @@ export const ColonyLeafletMap: React.FC = () => {
         return;
       }
 
+      console.log("Leaflet is available:", typeof L);
+      console.log("Container element:", mapContainerRef.current);
+      console.log("Container dimensions:", {
+        width: mapContainerRef.current.offsetWidth,
+        height: mapContainerRef.current.offsetHeight,
+      });
+
+      // Check if container has proper dimensions
+      if (
+        mapContainerRef.current.offsetWidth === 0 ||
+        mapContainerRef.current.offsetHeight === 0
+      ) {
+        console.error("Container has zero dimensions, cannot initialize map");
+        return;
+      }
+
       try {
         console.log("Initializing Leaflet map...");
-        console.log("Container dimensions:", {
-          width: mapContainerRef.current.offsetWidth,
-          height: mapContainerRef.current.offsetHeight,
-        });
 
         // Create map instance
         const mapInstance = L.map(mapContainerRef.current).setView([30, 0], 2);
@@ -115,6 +127,7 @@ export const ColonyLeafletMap: React.FC = () => {
         mapRef.current = mapInstance;
 
         console.log("Map initialized successfully");
+        console.log("Map instance:", mapInstance);
 
         // Force a resize after mount and when tiles load
         setTimeout(() => {
@@ -137,6 +150,8 @@ export const ColonyLeafletMap: React.FC = () => {
         });
       } catch (error) {
         console.error("Error initializing map:", error);
+        console.error("Error details:", error.message);
+        console.error("Error stack:", error.stack);
       }
     }, 100);
 
@@ -215,14 +230,21 @@ export const ColonyLeafletMap: React.FC = () => {
 
   const fetchColonies = async () => {
     try {
+      console.log("Fetching colonies from API...");
       const response = await apiFetch("/api/admin/workers/regions", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
+
+      console.log("API response status:", response.status);
+      console.log("API response ok:", response.ok);
+
       if (response.ok) {
         const data = await response.json();
+        console.log("API data received:", data);
+
         const mappedColonies: Colony[] = data.regions.map((region: any) => {
           let city = "Unknown";
           if (region.city) {
@@ -292,6 +314,7 @@ export const ColonyLeafletMap: React.FC = () => {
             status: region.available ? "online" : "offline",
           };
         });
+        console.log("Mapped colonies:", mappedColonies);
         setColonies(mappedColonies);
       } else {
         // Fallback data if API fails
