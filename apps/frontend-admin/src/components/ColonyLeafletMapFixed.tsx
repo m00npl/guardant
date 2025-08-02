@@ -32,8 +32,12 @@ interface Connection {
 
 const cityCoordinates: { [key: string]: [number, number] } = {
   Warsaw: [52.2297, 21.0122],
-  Kraków: [50.0647, 19.9450], // Fixed Kraków coordinates
+  Kraków: [50.0647, 19.9450],
+  Krakow: [50.0647, 19.9450], // Without accent for API matching
   Frankfurt: [50.1109, 8.6821],
+  Falkenstein: [50.4774, 12.3710], // Falkenstein, Germany (Hetzner DC)
+  Helsinki: [60.1699, 24.9384],
+  Ashburn: [39.0438, -77.4874], // Ashburn, Virginia
   London: [51.5074, -0.1278],
   Paris: [48.8566, 2.3522],
   Amsterdam: [52.3676, 4.9041],
@@ -61,6 +65,7 @@ const cityCoordinates: { [key: string]: [number, number] } = {
   Houston: [29.7604, -95.3698],
   Phoenix: [33.4484, -112.074],
   "Las Vegas": [36.1699, -115.1398],
+  Virginia: [39.0438, -77.4874], // Same as Ashburn for "US East (Virginia)"
 };
 
 export const ColonyLeafletMapFixed: React.FC = () => {
