@@ -1,28 +1,20 @@
-import React, { useEffect, useState } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  CircleMarker,
-  Popup,
-  Polyline,
-} from "react-leaflet";
-import { LatLngExpression } from "leaflet";
+import React, { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../utils/api";
 import "leaflet/dist/leaflet.css";
 
-// Fix for Leaflet icons in React
+// Fix for Leaflet icons in React - this needs to be done before any Leaflet usage
 import L from "leaflet";
-import icon from "leaflet/dist/images/marker-icon.png";
-import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+// Fix for default icon issue in react-leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
-
-L.Marker.prototype.options.icon = DefaultIcon;
 
 interface Colony {
   id: string;
@@ -79,6 +71,8 @@ export const ColonyLeafletMap: React.FC = () => {
   const [colonies, setColonies] = useState<Colony[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchColonies();
@@ -87,6 +81,95 @@ export const ColonyLeafletMap: React.FC = () => {
     }, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    try {
+      console.log("Initializing Leaflet map...");
+
+      // Create map instance
+      const mapInstance = L.map(mapContainerRef.current).setView([30, 0], 2);
+
+      // Add tile layer
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(mapInstance);
+
+      mapRef.current = mapInstance;
+
+      console.log("Map initialized successfully");
+
+      // Force a resize after mount
+      setTimeout(() => {
+        mapInstance.invalidateSize();
+      }, 100);
+    } catch (error) {
+      console.error("Error initializing map:", error);
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update markers when colonies change
+  useEffect(() => {
+    if (!mapRef.current || colonies.length === 0) return;
+
+    // Clear existing markers
+    mapRef.current.eachLayer((layer) => {
+      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+        mapRef.current?.removeLayer(layer);
+      }
+    });
+
+    // Add colony markers
+    colonies.forEach((colony) => {
+      const marker = L.marker(colony.coordinates).addTo(mapRef.current!);
+
+      const popupContent = `
+        <div class="text-center p-2">
+          <h3 class="font-semibold text-lg mb-1">${colony.city}</h3>
+          <p class="text-sm text-gray-600 mb-2">${colony.country}</p>
+          <div class="mb-2">
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              colony.status === "online"
+                ? "bg-green-100 text-green-800"
+                : "bg-gray-100 text-gray-800"
+            }">
+              ${colony.status === "online" ? "🟢 Online" : "⚫ Offline"}
+            </span>
+          </div>
+          ${colony.activeWorkers > 0 ? `<p class="text-sm"><strong>${colony.activeWorkers}</strong> active workers</p>` : ""}
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+    });
+
+    // Add connections
+    connections.forEach((connection) => {
+      const opacity = Math.max(
+        0.1,
+        1 - (Date.now() - connection.timestamp) / 3500
+      );
+      const polyline = L.polyline(
+        [connection.from.coordinates, connection.to.coordinates],
+        {
+          color: "#3b82f6",
+          weight: 2,
+          opacity: opacity,
+          dashArray: "5, 10",
+        }
+      ).addTo(mapRef.current!);
+    });
+  }, [colonies, connections]);
 
   const fetchColonies = async () => {
     try {
@@ -216,106 +299,13 @@ export const ColonyLeafletMap: React.FC = () => {
     );
   }
 
-  const center: LatLngExpression = [30, 0]; // Center on Europe/Africa
-
   return (
     <div className="relative w-full h-[600px] rounded-lg overflow-hidden shadow-lg">
-      <MapContainer
-        center={center}
-        zoom={2}
+      <div
+        ref={mapContainerRef}
         className="w-full h-full"
         style={{ background: "#f0f9ff" }}
-        scrollWheelZoom={true}
-        doubleClickZoom={true}
-        touchZoom={true}
-        zoomControl={true}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-
-        {/* Animated connections */}
-        {connections.map((connection, index) => {
-          const opacity = Math.max(
-            0.1,
-            1 - (Date.now() - connection.timestamp) / 3500
-          );
-          return (
-            <Polyline
-              key={`${connection.from.id}-${connection.to.id}-${connection.timestamp}`}
-              positions={[
-                connection.from.coordinates,
-                connection.to.coordinates,
-              ]}
-              color="#3b82f6"
-              weight={2}
-              opacity={opacity}
-              dashArray="5, 10"
-            />
-          );
-        })}
-
-        {/* Colony markers */}
-        {colonies.map((colony) => (
-          <React.Fragment key={colony.id}>
-            {/* Pulsing circle for online colonies */}
-            {colony.status === "online" && (
-              <>
-                <CircleMarker
-                  center={colony.coordinates}
-                  radius={30}
-                  fillColor="#3b82f6"
-                  fillOpacity={0.1}
-                  stroke={false}
-                  className="animate-pulse"
-                />
-                <CircleMarker
-                  center={colony.coordinates}
-                  radius={20}
-                  fillColor="#3b82f6"
-                  fillOpacity={0.2}
-                  stroke={false}
-                  className="animate-pulse"
-                />
-              </>
-            )}
-
-            {/* Main colony marker */}
-            <CircleMarker
-              center={colony.coordinates}
-              radius={10}
-              fillColor={colony.status === "online" ? "#3b82f6" : "#9ca3af"}
-              fillOpacity={1}
-              color="white"
-              weight={3}
-            >
-              <Popup>
-                <div className="text-center p-2">
-                  <h3 className="font-semibold text-lg mb-1">{colony.city}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{colony.country}</p>
-                  <div className="mb-2">
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        colony.status === "online"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {colony.status === "online" ? "🟢 Online" : "⚫ Offline"}
-                    </span>
-                  </div>
-                  {colony.activeWorkers > 0 && (
-                    <p className="text-sm">
-                      <strong>{colony.activeWorkers}</strong> active workers
-                    </p>
-                  )}
-                </div>
-              </Popup>
-            </CircleMarker>
-          </React.Fragment>
-        ))}
-      </MapContainer>
+      />
 
       {/* Legend */}
       <div className="absolute top-4 left-4 bg-white bg-opacity-95 rounded-lg shadow-lg p-4 z-[1000]">
