@@ -16,6 +16,7 @@ import {
 import { useAuthStore } from '../stores/authStore'
 import { apiFetch } from '../utils/api'
 import toast from 'react-hot-toast'
+import { SubdomainManager } from '../components/SubdomainManager'
 
 interface NestProfile {
   id: string
@@ -235,19 +236,14 @@ export const Settings: React.FC = () => {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Subdomain
+              Queen's Email
             </label>
-            <div className="flex">
-              <input
-                type="text"
-                className="input flex-1 rounded-r-none"
-                value={currentProfile?.subdomain || ''}
-                readOnly
-              />
-              <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-500">
-                .guardant.me
-              </span>
-            </div>
+            <input
+              type="email"
+              className="input w-full"
+              value={profile?.email || 'Loading...'}
+              readOnly
+            />
           </div>
           
           <div>

@@ -57,6 +57,7 @@ import {
 import { setupAuthManager } from './auth-setup';
 import { platformRoutes } from './platform-routes-simple';
 import { platformPointsRoutes } from './platform-points-routes';
+import { createSubdomainRoutes } from './routes/subdomain';
 import {
   PaymentManager,
   RedisPaymentStorage,
@@ -2608,6 +2609,11 @@ async function startServer() {
     // Mount workers API
     app.route('/api/admin/workers', workersApi);
     console.log('👷 Workers API enabled at /api/admin/workers');
+    
+    // Mount subdomain management routes
+    const subdomainRoutes = createSubdomainRoutes({ redis, hybridStorage });
+    app.route('/api/admin/subdomain', subdomainRoutes);
+    console.log('🌐 Subdomain API enabled at /api/admin/subdomain');
     
     console.log(`🚀 Admin API starting on port ${port}...`);
     console.log(`🐜 Ready to manage ant colonies with hybrid storage!`);

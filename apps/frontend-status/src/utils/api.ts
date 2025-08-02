@@ -35,17 +35,15 @@ class StatusPageAPI {
    * Fetch status page data for the current subdomain/nest
    */
   async getStatusPage(): Promise<StatusPageData> {
-    const url = `${API_BASE_URL}/api/status/page`;
+    // Use GET endpoint with subdomain in URL (more RESTful)
+    const url = `${API_BASE_URL}/api/status/${this.subdomain}`;
     
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subdomain: this.subdomain
-        })
+          'Accept': 'application/json',
+        }
       });
       
       if (!response.ok) {
