@@ -1,5 +1,5 @@
 import React from "react";
-import { ColonyLeafletMap } from "../components/ColonyLeafletMap";
+import { ColonyLeafletMapFixed } from "../components/ColonyLeafletMapFixed";
 
 export const Map: React.FC = () => {
   return (
@@ -9,7 +9,7 @@ export const Map: React.FC = () => {
       </h1>
 
       <div className="card p-6" style={{ minHeight: "700px" }}>
-        <ColonyLeafletMap />
+        <ColonyLeafletMapFixed />
       </div>
     </div>
   );
