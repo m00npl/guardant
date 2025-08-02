@@ -14,6 +14,7 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 # Copy custom nginx configuration
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/subdomain.conf /etc/nginx/conf.d/subdomain.conf
 
 # Create necessary directories
 RUN mkdir -p /var/cache/nginx /var/log/nginx

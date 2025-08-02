@@ -36,6 +36,21 @@ services:
     networks:
       - guardant-network
 
+  status-frontend:
+    container_name: guardant-status-frontend
+    build:
+      context: .
+      dockerfile: apps/frontend-status/Dockerfile
+    expose:
+      - "80"
+    environment:
+      - VITE_PUBLIC_API_URL=/api
+    depends_on:
+      - public-api
+    restart: unless-stopped
+    networks:
+      - guardant-network
+
   # public-frontend:
   #   container_name: guardant-public-frontend
   #   build:
