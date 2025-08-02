@@ -8,7 +8,7 @@ export const Map: React.FC = () => {
         Global Colony Map
       </h1>
 
-      <div className="card p-6">
+      <div className="card p-6" style={{ minHeight: "700px" }}>
         <ColonyLeafletMap />
       </div>
     </div>
